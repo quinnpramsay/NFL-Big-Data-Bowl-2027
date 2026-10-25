@@ -14,3 +14,6 @@ With such small causality things like lack of playing time or team they were dra
 For defensive backs there is almost no outcome metric at all
 
 It is only 510 players, divided down to one position group, and that having players may not even get any snaps over the small 3 year sample size, It is much more about hypothesis than actual model. 
+
+# Data
+Uses kaggle api call to import all the data from kaggle. must pip install --upgrade kagglehub in powershell/terminal before running data.py script. 
