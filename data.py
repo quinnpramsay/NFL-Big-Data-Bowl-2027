@@ -2,6 +2,16 @@ import glob
 import os
 
 import pandas as pd
+from dotenv import load_dotenv
+
+# Read the .env file into the environment. Does nothing if the file is missing, so secrets on GitHub still work
+load_dotenv()
+
+# Stop early with a clear message if the Kaggle token was not found
+if not os.getenv("KAGGLE_API_TOKEN"):
+    raise RuntimeError("KAGGLE_API_TOKEN not found. Add it to .env or to your GitHub secrets.")
+
+# Import kagglehub after the token is loaded, so it can find the login
 import kagglehub
 
 # Competition handle used by kagglehub
