@@ -1,3 +1,4 @@
+# Waiting to do a full data pull until we know what position we want to test based on the draft classes. 
 import glob
 import os
 
