@@ -31,5 +31,8 @@ Movement under Constraint: There is a significant difference between running in 
 
 - Can we identify which Combine movement characteristics translate into effective movement in the trenches, where athletic ability must be applied under physical constraints?
 - Does Combine-measured lateral agility and acceleration predict a defensive lineman's ability to recover and generate pressure after his initial pass-rush movement is disrupted?
+
+Coverage Recovery Index: How well a DB recovers from a break in a wide receivers route and how well that can be derived from combine data in reaction time - the biggest hurdle will be identifying route breaks in NFL games. 
+
 # Data
 Uses kaggle api call to import all the data from kaggle. must pip install --upgrade kagglehub in terminal before running data.py script. 
