@@ -11,3 +11,7 @@ Looking back on previous Big Data bowl completitions the one large trend that st
 
 # Data
 Uses kaggle api call to import all the data from kaggle. must pip install --upgrade kagglehub in terminal before running data.py script. 
+
+# Notebooks
+juice+ = thomas current version
+juice_plus = quinn current version
