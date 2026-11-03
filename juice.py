@@ -3,18 +3,23 @@ Juice+: does Combine movement predict NFL game movement?
 ========================================================
 
 Combine Juice+ (from Combine tracking) vs Game Juice+ (from 2023-2025 regular-season
-tracking), for every player with game data. Position groups: DB, DL, EDGE, OL, TE, WR.
+tracking). Only players with Combine tracking are used, so game data covers exactly the
+positions the Combine data covers. Position groups: DB, DL, EDGE, OL, TE, WR.
 
 Combine Juice+
   E explosiveness (distance at 1.5 s, speed at 1.0 s), T top-end speed (fastest 10 yards),
   A agility (position drills; only where the drills are reliable, not EDGE or TE).
-  Each piece is adjusted for size and draft class, shrunk by its retest reliability, then
-  averaged and scaled to 100 +/- 10 within position group.
+  Each tracked piece is adjusted for size and draft class and shrunk by its retest reliability.
+  It is then averaged with the official tests of the same trait (E: vertical, broad jump,
+  10-yard split; T: 40; A: 3-cone, shuttle), adjusted the same way. The pieces are averaged
+  and scaled to 100 +/- 10 within position group. BLEND_STOPWATCH = False gives tracked-only.
 
 Game Juice+
   top speed, explosiveness and agility from game snaps, each as the player's best effort
-  (95th percentile) after adjusting for position, route and play length. Explosiveness
-  averages speed at 1.0 s and distance at 1.5 s after a standing-start snap on role plays.
+  (95th percentile) after adjusting for position, alignment, route (coverage job for DBs)
+  and play length. Plays in decided games (home win probability under 5% or over 95%) are
+  dropped. Explosiveness averages speed at 1.0 s and distance at 1.5 s after a standing-start
+  snap on role plays.
   Components are weighted by their split-half reliability, and each is shrunk toward
   average by the player's own number of plays, so players with few snaps count for less.
   Game agility is left out where the Combine agility check fails, so both sides match.
@@ -84,12 +89,14 @@ MIN_PLAY_SECONDS = 3.0
 MIN_FRAMES = int(round(MIN_PLAY_SECONDS * 10))   # drop dead plays
 MIN_FRAMES_OPEN = 20                             # plays used for speed / agility
 
-POOLS = {"all": (1, 0)}            # every player with game data: (min plays, min standing snaps)
+POOLS = {"all": (1, 0)}            # every tracked player with game data: (min plays, min standing snaps)
 SEASON_POOLS = {"all": (1, 0)}
 RELIABILITY_MIN = (200, 50)        # reliabilities are estimated on well-sampled players only
 SEASON_MIN_PLAYS, SEASON_MIN_BURSTS = 100, 30   # persistence check, one season at a time
 
 GATE_ALPHA, MIN_PLAYERS_DRILL, MIN_OVERLAP = 0.5, 20, 15
+BLEND_STOPWATCH = True             # average tracked pieces with official tests of the same trait
+GARBAGE_WP = 0.05                  # drop plays when home win probability is under 5% or over 95%
 BOOT_REPS = int(os.getenv("JUICE_BOOT_REPS", 2000))
 BELOW_AVG, ELITE = 100, 110
 HIGH_PICK, LOW_PICK = 64, 140
@@ -288,6 +295,9 @@ ct = load_csv(
 ct = ct[(ct.entity_type == "PLAYER") & ct.nfl_id.notna()].copy()
 ct["nfl_id"] = ct.nfl_id.astype(int)
 ct = ct[ct.nfl_id.isin(D.nfl_id)]
+# Game data is limited to players, and so positions, that have Combine tracking.
+D = D[D.nfl_id.isin(ct.nfl_id)].copy()
+print(f"Players with Combine tracking: {len(D)}; by position: {D.nfl_position.value_counts().to_dict()}")
 ct["drill_name"] = ct.drill_name.replace(ALIAS)
 ct["time"] = pd.to_datetime(ct.time)
 ct = ct.sort_values(["event_id", "time"])
@@ -434,20 +444,52 @@ for row in GATE_ROWS:
 
 C = D.merge(P40, on="nfl_id", how="left").merge(AGL, on="nfl_id", how="left")
 
+# Official tests that measure the same trait as each tracked piece (+1 higher is better, -1 lower is better).
+OFFICIAL = {
+    "E": {"vertical": 1, "broad_jump": 1, "ten_yd_split": -1},
+    "T": {"forty": -1},
+    "A": {"three_cone": -1, "short_shuttle": -1},
+}
+TRACKED_COLS = ["d15", "v1", "fly10", "agil"]
+OFFICIAL_COLS = sorted({c_ for d_ in OFFICIAL.values() for c_ in d_} & set(TESTS.columns))
 
-def build_scores(Cin, size_adj=True, shrink=True):
-    c = Cin.copy()
-    for col in ["d15", "v1", "fly10", "agil"]:
-        c[col + "_z"] = adjust(c, col, size_adj=size_adj)
-    c["E"] = c[["d15_z", "v1_z"]].mean(axis=1)
-    c["T"] = c["fly10_z"]
-    c["A"] = c["agil_z"].where(c.pgm.map(gate).fillna(False).astype(bool))
+
+def with_tests(df):
+    """Same rows as df, plus the official Combine tests."""
+    return df.join(TESTS.set_index("nfl_id"), on="nfl_id")
+
+
+def combine_pieces(z, c, rel_e, rel_t, rbar_map, gate_map, shrink=True, blend=True):
+    """E, T, A from standardized columns z. Tracked pieces are shrunk by their reliability;
+    with blend=True each is then averaged with the official tests of the same trait."""
+    E = pd.concat([z["d15"], z["v1"]], axis=1).mean(axis=1)
+    T = z["fly10"]
+    A = z["agil"].where(c.pgm.map(gate_map).fillna(False).astype(bool))
     if shrink:
         k = c.attempts.fillna(1).clip(lower=1)
-        c["E"], c["T"] = c["E"] * sb(k, REL_E), c["T"] * sb(k, REL_T)
         m = c.n_drills.fillna(1).clip(lower=1)
-        rb_ = c.pgm.map(rbar)
-        c["A"] = c["A"] * np.clip(m * rb_ / (1 + (m - 1) * rb_), 0, 1)
+        rb = c.pgm.map(rbar_map)
+        E, T = E * sb(k, rel_e), T * sb(k, rel_t)
+        A = A * np.clip(m * rb / (1 + (m - 1) * rb), 0, 1)
+    if blend:
+        pieces = {}
+        for name, tracked in (("E", E), ("T", T), ("A", A)):
+            cols = [(col, sg) for col, sg in OFFICIAL[name].items() if col in z]
+            if cols:
+                off = pd.concat([sg * z[col] for col, sg in cols], axis=1).mean(axis=1)
+                tracked = ((tracked + off) / 2).where(off.notna(), tracked)
+            pieces[name] = tracked
+        E, T, A = pieces["E"], pieces["T"], pieces["A"]
+    return E, T, A
+
+
+def build_scores(Cin, size_adj=True, shrink=True, blend=True):
+    c = Cin.copy()
+    src = with_tests(Cin)
+    z = {col: adjust(src, col, size_adj=size_adj) for col in TRACKED_COLS + (OFFICIAL_COLS if blend else [])}
+    for col in TRACKED_COLS:
+        c[col + "_z"] = z[col]
+    c["E"], c["T"], c["A"] = combine_pieces(z, c, REL_E, REL_T, rbar, gate, shrink, blend)
     c["raw"] = c[["E", "T", "A"]].mean(axis=1, skipna=True)
     c.loc[c["E"].isna() | c["T"].isna(), "raw"] = np.nan   # E and T are required
     for comp in ["E", "T", "A", "raw"]:
@@ -456,8 +498,13 @@ def build_scores(Cin, size_adj=True, shrink=True):
     return c
 
 
-S = build_scores(C)
-S["juice_unadjusted"] = build_scores(C, size_adj=False)["juice"].values
+S = build_scores(C, blend=BLEND_STOPWATCH)
+S["juice_unadjusted"] = build_scores(C, size_adj=False, blend=BLEND_STOPWATCH)["juice"].values
+# Tracked-only version, saved so outcome.py can show what the blend adds.
+TRK = build_scores(C, blend=False)
+S["juice_tracked_only"] = TRK["juice"].values
+for comp in ["E", "T", "A"]:
+    S[f"{comp}_trk_plus"] = TRK[f"{comp}_plus"].values
 FINAL = S[S.E_plus.notna() & S.T_plus.notna()].copy()
 FINAL["juice_final"] = FINAL["juice"]
 print(f"Players with a Combine Juice+ score: {len(FINAL)}")
@@ -539,24 +586,47 @@ print(f"  Player-plays in table: {len(PT)}")
 print("\n[4/6] Building role fields and context-adjusted game metrics...")
 pp = load_csv(
     "player_play.csv",
-    usecols=KEYS + ["lined_up_position", "route_ran", "player_get_off",
-                    "coverage_assignment", "pass_rushers_encountered"],
+    usecols=KEYS + ["lined_up_position", "route_ran", "player_get_off", "coverage_assignment",
+                    "pass_rushers_encountered", "pre_snap_home_team_win_probability"],
 )
 PT = (
     PT.merge(games[["game_id", "season"]], on="game_id")
       .merge(D[["nfl_id", "pgm", "nfl_position", "draft_year"]], on="nfl_id")
       .merge(pp, on=KEYS, how="left")
 )
+# Drop plays from decided games, where effort and snap counts change.
+wp = PT.pre_snap_home_team_win_probability
+PT = PT[~((wp <= GARBAGE_WP) | (wp >= 1 - GARBAGE_WP))].copy()
 PT["role"] = (
     (PT.pgm.isin(["WR", "TE"]) & PT.route_ran.notna())
     | (PT.pgm.isin(["DL", "EDGE"]) & PT.player_get_off.notna())
-    | ((PT.pgm == "DB") & PT.coverage_assignment.notna())
+    | ((PT.pgm == "DB") & PT.coverage_assignment.notna() & (PT.coverage_assignment != "NO_ASSIGNMENT"))
     | ((PT.pgm == "OL") & PT.pass_rushers_encountered.notna())
 )
-PT["align"] = np.where(PT.pgm.isin(["DL", "EDGE"]), PT.lined_up_position.fillna("UNK"), "ALL")
+PT["align"] = np.where(PT.pgm.isin(["DL", "EDGE", "DB", "WR"]), PT.lined_up_position.fillna("UNK"), "ALL")
 PT = PT[PT.n_after >= MIN_FRAMES].copy()
 PT["len_s"] = np.minimum(PT.n_after // 10, 10)
-PT["route"] = np.where(PT.pgm.isin(["WR", "TE"]), PT.route_ran.fillna("NO_ROUTE"), "NONE")
+
+
+def coverage_family(a):
+    """Collapse the 19 coverage assignments into the jobs a DB actually has."""
+    a = str(a)
+    if a == "MAN":
+        return "MAN"
+    if a.startswith("DEEP_THIRD") or a == "DEEP_FREE":
+        return "DEEP_THIRD"
+    if a.startswith("QUARTERS"):
+        return "QUARTERS"
+    if a.startswith("DEEP_HALF"):
+        return "DEEP_HALF"
+    if a.startswith(("CURL_FLAT", "FLAT", "HOOK_CURL")) or a == "HOLE":
+        return "SHORT_ZONE"
+    return "OTHER"
+
+
+# One "route" key for everyone: the route for WR/TE, the coverage job for DBs, nothing for the rest.
+PT["route"] = np.where(PT.pgm.isin(["WR", "TE"]), PT.route_ran.fillna("NO_ROUTE"),
+                       np.where(PT.pgm == "DB", PT.coverage_assignment.map(coverage_family), "NONE"))
 
 
 def demean(df, col, key_sets, min_cell=100):
@@ -585,7 +655,7 @@ def burst_mask(P):
 
 def add_adjusted(frame):
     P = frame.copy()
-    factors = ["route", "len_s"]
+    factors = ["route", "len_s", "align"]
     P["peak_c"], P["alat_c"], P["s10_c"], P["d15_c"], P["expl_c"] = (
         np.nan, np.nan, np.nan, np.nan, np.nan)
     open_play = P.n_after >= MIN_FRAMES_OPEN
@@ -741,7 +811,7 @@ if season_scores:
 persist_df = pd.DataFrame(persist_rows)
 
 # ---------------------------------------------------------------------
-# [6/6] Validation (everything below uses Game Juice+ Game Juice+)
+# [6/6] Validation (everything below uses Game Juice+)
 # ---------------------------------------------------------------------
 
 print("\n[6/6] Comparing Combine Juice+ to Game Juice+ ...")
@@ -820,19 +890,15 @@ def adjust_frozen(df, col, train):
 
 
 JF = pd.Series(np.nan, index=C.index)
+CT = with_tests(C)
 for cls in sorted(C.draft_year.dropna().unique()):
     train = C.draft_year != cls
     ids_tr = set(C.nfl_id[train])
     RE_f, RT_f, _ = retest_reliability(w2[w2.nfl_id.isin(ids_tr)])
     gate_f, rbar_f = gate_fn(ids_tr)
-    z = {col: adjust_frozen(C, col, train) for col in ["d15", "v1", "fly10", "agil"]}
-    k_ = C.attempts.fillna(1).clip(lower=1)
-    m_ = C.n_drills.fillna(1).clip(lower=1)
-    rb_ = C.pgm.map(rbar_f)
-    E = pd.concat([z["d15"], z["v1"]], axis=1).mean(axis=1) * sb(k_, RE_f)
-    T = z["fly10"] * sb(k_, RT_f)
-    A = z["agil"].where(C.pgm.map(gate_f).fillna(False).astype(bool)) * np.clip(
-        m_ * rb_ / (1 + (m_ - 1) * rb_), 0, 1)
+    z = {col: adjust_frozen(CT, col, train)
+         for col in TRACKED_COLS + (OFFICIAL_COLS if BLEND_STOPWATCH else [])}
+    E, T, A = combine_pieces(z, C, RE_f, RT_f, rbar_f, gate_f, blend=BLEND_STOPWATCH)
     raw = pd.concat([E, T, A], axis=1).mean(axis=1).where(E.notna() & T.notna())
     te = ~train & raw.notna()
     g_ = raw[te].groupby(C.pgm[te])
@@ -1107,7 +1173,8 @@ for pool in POOLS:
     save(GAME[pool].drop(columns=["raw"], errors="ignore").assign(player_pool=pool),
          f"game_juice_scores_{pool}.csv")
 player_table = FINAL[["nfl_id", "display_name", "nfl_position", "pgm", "draft_year",
-                      "juice_final", "E_plus", "T_plus", "A_plus"]]
+                      "juice_final", "E_plus", "T_plus", "A_plus", "juice_tracked_only",
+                      "E_trk_plus", "T_trk_plus", "A_trk_plus"]]
 for pool in POOLS:
     player_table = player_table.merge(
         GAME[pool][["nfl_id", "game_juice"]].rename(columns={"game_juice": f"game_juice_{pool}"}),
