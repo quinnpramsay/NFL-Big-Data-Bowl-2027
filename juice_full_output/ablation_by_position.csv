@@ -1,0 +1,49 @@
+game_definition,player_pool,combine_variant,position_group,n,spearman
+game agility matched to Combine gate,strict,full (E+T+A),DB,54,0.3481989708404802
+game agility matched to Combine gate,strict,full (E+T+A),DL,23,0.13537549407114624
+game agility matched to Combine gate,strict,full (E+T+A),EDGE,28,0.16639299397920088
+game agility matched to Combine gate,strict,full (E+T+A),OL,51,-0.04561085972850678
+game agility matched to Combine gate,strict,full (E+T+A),TE,14,0.48571428571428577
+game agility matched to Combine gate,strict,full (E+T+A),WR,47,0.2888529139685476
+game agility matched to Combine gate,strict,T+A,DB,54,0.3596340766152087
+game agility matched to Combine gate,strict,T+A,DL,23,0.16403162055335968
+game agility matched to Combine gate,strict,T+A,EDGE,28,0.2785987958401751
+game agility matched to Combine gate,strict,T+A,OL,51,-0.01918552036199095
+game agility matched to Combine gate,strict,T+A,TE,14,0.42857142857142855
+game agility matched to Combine gate,strict,T+A,WR,47,0.2779833487511564
+game agility matched to Combine gate,all,full (E+T+A),DB,78,0.270931600045524
+game agility matched to Combine gate,all,full (E+T+A),DL,34,0.254392666157372
+game agility matched to Combine gate,all,full (E+T+A),EDGE,43,0.2577771066143159
+game agility matched to Combine gate,all,full (E+T+A),OL,73,0.026255707762557087
+game agility matched to Combine gate,all,full (E+T+A),TE,28,0.5046524356869184
+game agility matched to Combine gate,all,full (E+T+A),WR,72,0.3750401955109654
+game agility matched to Combine gate,all,T+A,DB,78,0.2814274333261675
+game agility matched to Combine gate,all,T+A,DL,34,0.17708174178762415
+game agility matched to Combine gate,all,T+A,EDGE,43,0.2802778616732105
+game agility matched to Combine gate,all,T+A,OL,73,-0.005892879180550414
+game agility matched to Combine gate,all,T+A,TE,28,0.3185550082101806
+game agility matched to Combine gate,all,T+A,WR,72,0.3586404270371086
+game agility for every group,strict,full (E+T+A),DB,54,0.3481989708404802
+game agility for every group,strict,full (E+T+A),DL,23,0.13537549407114624
+game agility for every group,strict,full (E+T+A),EDGE,28,0.06403940886699507
+game agility for every group,strict,full (E+T+A),OL,51,-0.04561085972850678
+game agility for every group,strict,full (E+T+A),TE,14,0.5912087912087912
+game agility for every group,strict,full (E+T+A),WR,47,0.2888529139685476
+game agility for every group,strict,T+A,DB,54,0.3596340766152087
+game agility for every group,strict,T+A,DL,23,0.16403162055335968
+game agility for every group,strict,T+A,EDGE,28,0.15763546798029557
+game agility for every group,strict,T+A,OL,51,-0.01918552036199095
+game agility for every group,strict,T+A,TE,14,0.48571428571428577
+game agility for every group,strict,T+A,WR,47,0.2779833487511564
+game agility for every group,all,full (E+T+A),DB,78,0.270931600045524
+game agility for every group,all,full (E+T+A),DL,34,0.254392666157372
+game agility for every group,all,full (E+T+A),EDGE,43,0.10208396254907884
+game agility for every group,all,full (E+T+A),OL,73,0.026255707762557087
+game agility for every group,all,full (E+T+A),TE,28,0.5084838533114395
+game agility for every group,all,full (E+T+A),WR,72,0.3750401955109654
+game agility for every group,all,T+A,DB,78,0.2814274333261675
+game agility for every group,all,T+A,DL,34,0.17708174178762415
+game agility for every group,all,T+A,EDGE,43,0.20507399577167015
+game agility for every group,all,T+A,OL,73,-0.005892879180550414
+game agility for every group,all,T+A,TE,28,0.28735632183908044
+game agility for every group,all,T+A,WR,72,0.3586404270371086
