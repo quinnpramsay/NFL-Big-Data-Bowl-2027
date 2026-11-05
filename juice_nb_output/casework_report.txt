@@ -1,4 +1,4 @@
-Run 20261105T163235Z-ffa63e. Combine-scored players: 414; WR 93, DB 99, OL 95
+Run 20261105T200039Z-a2540c. Combine-scored players: 414; WR 93, DB 99, OL 95
 
 ==============================================================================
 A. THE AGILITY CASE FOR WR AND DB
@@ -10,84 +10,84 @@ A1. Trait specificity: which Combine number predicts which game trait?
 Each tracked Combine piece holds the 40 fixed; the 40 row holds the Combine agility piece fixed.
 
   WR
-  Combine agility  -> game agility    (holding the 40) +0.335 [+0.070, +0.539]  n=61
-  Combine speed    -> game agility    (holding the 40) -0.123 [-0.364, +0.154]  n=61
-  Combine burst    -> game agility    (holding the 40) +0.023 [-0.260, +0.290]  n=61
-  Official 40      -> game agility    (holding agility) +0.041 [-0.236, +0.288]  n=61
-  Combine agility  -> game top speed  (holding the 40) +0.043 [-0.210, +0.291]  n=61
-  Combine speed    -> game top speed  (holding the 40) +0.306 [+0.067, +0.518]  n=61
-  Combine burst    -> game top speed  (holding the 40) -0.075 [-0.310, +0.185]  n=61
-  Official 40      -> game top speed  (holding agility) +0.494 [+0.286, +0.653]  n=61
-  Combine agility  -> game burst      (holding the 40) +0.150 [-0.131, +0.413]  n=61
-  Combine speed    -> game burst      (holding the 40) -0.073 [-0.315, +0.192]  n=61
-  Combine burst    -> game burst      (holding the 40) +0.026 [-0.228, +0.285]  n=61
-  Official 40      -> game burst      (holding agility) +0.184 [-0.086, +0.418]  n=61
+  Combine agility  -> game agility    (holding the 40) +0.335 [+0.091, +0.546]  n=61
+  Combine speed    -> game agility    (holding the 40) -0.123 [-0.367, +0.151]  n=61
+  Combine burst    -> game agility    (holding the 40) +0.023 [-0.253, +0.306]  n=61
+  Official 40      -> game agility    (holding agility) +0.041 [-0.208, +0.319]  n=61
+  Combine agility  -> game top speed  (holding the 40) +0.043 [-0.237, +0.302]  n=61
+  Combine speed    -> game top speed  (holding the 40) +0.306 [+0.048, +0.524]  n=61
+  Combine burst    -> game top speed  (holding the 40) -0.075 [-0.324, +0.194]  n=61
+  Official 40      -> game top speed  (holding agility) +0.494 [+0.268, +0.654]  n=61
+  Combine agility  -> game burst      (holding the 40) +0.150 [-0.133, +0.409]  n=61
+  Combine speed    -> game burst      (holding the 40) -0.073 [-0.307, +0.188]  n=61
+  Combine burst    -> game burst      (holding the 40) +0.026 [-0.231, +0.298]  n=61
+  Official 40      -> game burst      (holding agility) +0.184 [-0.087, +0.439]  n=61
 
   DB
-  Combine agility  -> game agility    (holding the 40) +0.318 [+0.051, +0.547]  n=64
-  Combine speed    -> game agility    (holding the 40) +0.119 [-0.152, +0.372]  n=64
-  Combine burst    -> game agility    (holding the 40) +0.048 [-0.188, +0.279]  n=64
-  Official 40      -> game agility    (holding agility) +0.239 [-0.006, +0.459]  n=64
-  Combine agility  -> game top speed  (holding the 40) +0.299 [+0.064, +0.507]  n=64
-  Combine speed    -> game top speed  (holding the 40) +0.112 [-0.136, +0.349]  n=64
-  Combine burst    -> game top speed  (holding the 40) +0.109 [-0.190, +0.349]  n=64
-  Official 40      -> game top speed  (holding agility) +0.140 [-0.116, +0.403]  n=64
-  Combine agility  -> game burst      (holding the 40) +0.067 [-0.191, +0.326]  n=64
-  Combine speed    -> game burst      (holding the 40) +0.165 [-0.077, +0.396]  n=64
-  Combine burst    -> game burst      (holding the 40) +0.203 [-0.057, +0.447]  n=64
-  Official 40      -> game burst      (holding agility) +0.101 [-0.162, +0.366]  n=64
+  Combine agility  -> game agility    (holding the 40) +0.318 [+0.031, +0.544]  n=64
+  Combine speed    -> game agility    (holding the 40) +0.119 [-0.142, +0.370]  n=64
+  Combine burst    -> game agility    (holding the 40) +0.048 [-0.179, +0.293]  n=64
+  Official 40      -> game agility    (holding agility) +0.239 [+0.003, +0.478]  n=64
+  Combine agility  -> game top speed  (holding the 40) +0.299 [+0.056, +0.530]  n=64
+  Combine speed    -> game top speed  (holding the 40) +0.112 [-0.154, +0.355]  n=64
+  Combine burst    -> game top speed  (holding the 40) +0.109 [-0.185, +0.394]  n=64
+  Official 40      -> game top speed  (holding agility) +0.140 [-0.115, +0.383]  n=64
+  Combine agility  -> game burst      (holding the 40) +0.067 [-0.185, +0.319]  n=64
+  Combine speed    -> game burst      (holding the 40) +0.165 [-0.077, +0.419]  n=64
+  Combine burst    -> game burst      (holding the 40) +0.203 [-0.086, +0.412]  n=64
+  Official 40      -> game burst      (holding agility) +0.101 [-0.177, +0.368]  n=64
 
   WR + DB
-  Combine agility  -> game agility    (holding the 40) +0.328 [+0.153, +0.472]  n=125
-  Combine speed    -> game agility    (holding the 40) +0.005 [-0.175, +0.198]  n=125
-  Combine burst    -> game agility    (holding the 40) +0.034 [-0.129, +0.219]  n=125
-  Official 40      -> game agility    (holding agility) +0.141 [-0.047, +0.323]  n=125
-  Combine agility  -> game top speed  (holding the 40) +0.172 [-0.011, +0.334]  n=125
-  Combine speed    -> game top speed  (holding the 40) +0.200 [+0.043, +0.378]  n=125
-  Combine burst    -> game top speed  (holding the 40) +0.026 [-0.172, +0.222]  n=125
-  Official 40      -> game top speed  (holding agility) +0.320 [+0.158, +0.460]  n=125
-  Combine agility  -> game burst      (holding the 40) +0.106 [-0.090, +0.284]  n=125
-  Combine speed    -> game burst      (holding the 40) +0.079 [-0.093, +0.245]  n=125
-  Combine burst    -> game burst      (holding the 40) +0.118 [-0.070, +0.304]  n=125
-  Official 40      -> game burst      (holding agility) +0.140 [-0.043, +0.316]  n=125
+  Combine agility  -> game agility    (holding the 40) +0.328 [+0.146, +0.492]  n=125
+  Combine speed    -> game agility    (holding the 40) +0.005 [-0.165, +0.184]  n=125
+  Combine burst    -> game agility    (holding the 40) +0.034 [-0.134, +0.214]  n=125
+  Official 40      -> game agility    (holding agility) +0.141 [-0.044, +0.312]  n=125
+  Combine agility  -> game top speed  (holding the 40) +0.172 [-0.013, +0.334]  n=125
+  Combine speed    -> game top speed  (holding the 40) +0.200 [+0.028, +0.378]  n=125
+  Combine burst    -> game top speed  (holding the 40) +0.026 [-0.174, +0.225]  n=125
+  Official 40      -> game top speed  (holding agility) +0.320 [+0.147, +0.466]  n=125
+  Combine agility  -> game burst      (holding the 40) +0.106 [-0.075, +0.289]  n=125
+  Combine speed    -> game burst      (holding the 40) +0.079 [-0.095, +0.255]  n=125
+  Combine burst    -> game burst      (holding the 40) +0.118 [-0.085, +0.289]  n=125
+  Official 40      -> game burst      (holding agility) +0.140 [-0.039, +0.325]  n=125
 
-  S1  Combine agility -> game agility, holding the 40 (WR + DB): +0.328 [+0.147, +0.479]  n=125
-      Agility minus the 40 (each holding the other):             +0.187 [-0.092, +0.429]
+  S1  Combine agility -> game agility, holding the 40 (WR + DB): +0.328 [+0.150, +0.483]  n=125
+      Agility minus the 40 (each holding the other):             +0.187 [-0.089, +0.438]
 
 A2. Robustness of S1 (WR + DB, Combine agility -> game agility, holding the 40)
-  holding 40 + RAS-style                                     +0.338 [+0.139, +0.506]  n=111
-  holding 40 + draft pick                                    +0.328 [+0.131, +0.477]  n=125
-  holding 40 + log plays                                     +0.329 [+0.133, +0.494]  n=125
-  holding 40 + RAS + pick + plays                            +0.346 [+0.145, +0.528]  n=111
-  holding 40 + weight + height                               +0.331 [+0.151, +0.481]  n=125
-  draft class 2023 only                                      +0.396 [+0.078, +0.645]  n=46
-  drop class 2023                                            +0.292 [+0.053, +0.476]  n=79
-  draft class 2024 only                                      +0.354 [+0.017, +0.602]  n=45
-  drop class 2024                                            +0.303 [+0.054, +0.510]  n=80
-  draft class 2025 only                                      +0.146 [-0.210, +0.468]  n=34
-  drop class 2025                                            +0.374 [+0.161, +0.555]  n=91
+  holding 40 + RAS-style                                     +0.338 [+0.135, +0.511]  n=111
+  holding 40 + draft pick                                    +0.328 [+0.150, +0.476]  n=125
+  holding 40 + log plays                                     +0.329 [+0.139, +0.486]  n=125
+  holding 40 + RAS + pick + plays                            +0.346 [+0.134, +0.521]  n=111
+  holding 40 + weight + height                               +0.331 [+0.153, +0.484]  n=125
+  draft class 2023 only                                      +0.396 [+0.067, +0.653]  n=46
+  drop class 2023                                            +0.292 [+0.057, +0.506]  n=79
+  draft class 2024 only                                      +0.354 [+0.027, +0.606]  n=45
+  drop class 2024                                            +0.303 [+0.049, +0.508]  n=80
+  draft class 2025 only                                      +0.146 [-0.208, +0.489]  n=34
+  drop class 2025                                            +0.374 [+0.172, +0.551]  n=91
   drop the  1 most influential players                       +0.308  n=124
   drop the  3 most influential players                       +0.267  n=122
   drop the  5 most influential players                       +0.234  n=120
   drop the 10 most influential players                       +0.160  n=115
   most influential: Jalin Hyatt (WR), Deonte Banks (CB), Bub Means (WR), Malik Heath (WR), Cole Bishop (SS)
-  permutation p (agility shuffled within group, 2000 draws): 0.0010
+  permutation p (agility shuffled within group, 2000 draws): 0.0005
 
 A3. Year-2 catch-up, WR + DB only (game agility season means, 50+ plays per season, size-free)
   year-2 agility ~ year-1 + Combine agility + 40, n=63
-    Combine agility +0.339 [+0.121, +0.535]   the 40 +0.011 [-0.168, +0.208]   year 1 +0.31
+    Combine agility +0.339 [+0.123, +0.536]   the 40 +0.011 [-0.173, +0.219]   year 1 +0.31
     flagged 'unused agility' (Combine agility 1+ SD above year-1 game agility): 16; mean change year 1 -> 2: +0.71 SD vs -0.48 for the rest
 
 A4. Link 2: does game agility show up in football results? (exploratory)
-  WR game agility -> separation at throw                     +0.150 [-0.119, +0.402]  n=61
-  WR game agility -> separation at throw, holding game top speed +0.090 [-0.197, +0.343]  n=61
-  WR game agility -> yards per route                         +0.190 [-0.079, +0.431]  n=61
-  WR game agility -> yards per route, holding game top speed +0.191 [-0.058, +0.422]  n=61
-  DB game agility -> coverage EPA (flipped), all             -0.014 [-0.258, +0.239]  n=60
-  DB game agility -> coverage EPA (flipped), all, holding game top speed -0.088 [-0.340, +0.162]  n=60
-  DB game agility -> coverage EPA (flipped), man only        -0.032 [-0.330, +0.253]  n=50
-  DB game agility -> coverage EPA (flipped), man only, holding game top speed -0.051 [-0.332, +0.227]  n=50
-  DB game agility -> coverage EPA (flipped), zone only       +0.005 [-0.247, +0.262]  n=61
+  WR game agility -> separation at throw                     +0.150 [-0.123, +0.402]  n=61
+  WR game agility -> separation at throw, holding game top speed +0.090 [-0.190, +0.358]  n=61
+  WR game agility -> yards per route                         +0.190 [-0.080, +0.422]  n=61
+  WR game agility -> yards per route, holding game top speed +0.191 [-0.115, +0.425]  n=61
+  DB game agility -> coverage EPA (flipped), all             -0.014 [-0.282, +0.265]  n=60
+  DB game agility -> coverage EPA (flipped), all, holding game top speed -0.088 [-0.349, +0.188]  n=60
+  DB game agility -> coverage EPA (flipped), man only        -0.032 [-0.324, +0.260]  n=50
+  DB game agility -> coverage EPA (flipped), man only, holding game top speed -0.051 [-0.349, +0.250]  n=50
+  DB game agility -> coverage EPA (flipped), zone only       +0.005 [-0.253, +0.266]  n=61
   DB game agility -> coverage EPA (flipped), zone only, holding game top speed -0.035 [-0.292, +0.225]  n=61
 
 ==============================================================================
@@ -100,45 +100,45 @@ B0. What an OL 'burst' play is: a pass-pro snap where the lineman got 10+ yards 
     OL with game burst score: 59; game burst vs number of burst plays (Spearman): +0.46; vs screen share: -0.16
 
 B1. Each link with intervals
-  L1  Combine burst -> game burst                            +0.312 [+0.058, +0.524]  n=59
-  L1  Combine burst -> game burst, holding the 40            +0.207 [-0.069, +0.450]  n=59
-  L1  ... holding the 40 + number of burst plays             +0.134 [-0.146, +0.382]  n=59
-  L2  game burst -> peak pressure (flipped), all dropbacks   +0.343 [+0.115, +0.540]  n=59
-  L2  ... dropbacks that are not burst plays                 +0.301 [+0.073, +0.505]  n=59
-  L2  ... not burst plays and not screens                    +0.352 [+0.120, +0.543]  n=57
-  L2  ... not burst plays, holding screen share + n burst plays +0.212 [-0.003, +0.412]  n=59
-  L2  ... plus pick and log plays                            +0.209 [-0.031, +0.433]  n=59
-  L2  ... plus mean dropback length                          +0.215 [-0.006, +0.427]  n=59
-  L2  game top speed -> same outcome (placebo trait)         +0.028 [-0.219, +0.270]  n=60
-  direct  Combine burst -> peak pressure, all dropbacks      +0.153 [-0.111, +0.408]  n=60
-  direct  ... non-burst dropbacks, holding the 40            +0.070 [-0.195, +0.342]  n=60
-  L2 non-burst, class 2023 only                              +0.332 [-0.148, +0.695]  n=20
-  L2 non-burst, class 2024 only                              +0.269 [-0.195, +0.669]  n=22
+  L1  Combine burst -> game burst                            +0.312 [+0.046, +0.541]  n=59
+  L1  Combine burst -> game burst, holding the 40            +0.207 [-0.078, +0.445]  n=59
+  L1  ... holding the 40 + number of burst plays             +0.134 [-0.141, +0.389]  n=59
+  L2  game burst -> peak pressure (flipped), all dropbacks   +0.343 [+0.124, +0.533]  n=59
+  L2  ... dropbacks that are not burst plays                 +0.301 [+0.064, +0.504]  n=59
+  L2  ... not burst plays and not screens                    +0.352 [+0.133, +0.543]  n=57
+  L2  ... not burst plays, holding screen share + n burst plays +0.212 [+0.004, +0.414]  n=59
+  L2  ... plus pick and log plays                            +0.209 [-0.033, +0.436]  n=59
+  L2  ... plus mean dropback length                          +0.215 [+0.001, +0.428]  n=59
+  L2  game top speed -> same outcome (placebo trait)         +0.028 [-0.209, +0.255]  n=60
+  direct  Combine burst -> peak pressure, all dropbacks      +0.153 [-0.107, +0.408]  n=60
+  direct  ... non-burst dropbacks, holding the 40            +0.070 [-0.188, +0.370]  n=60
+  L2 non-burst, class 2023 only                              +0.332 [-0.071, +0.704]  n=20
+  L2 non-burst, class 2024 only                              +0.269 [-0.177, +0.660]  n=22
   L2 non-burst, class 2025 only                               n=17 (too few)
 
 B2. Mediation: Combine burst -> game burst -> peak pressure on non-burst dropbacks
   a (Combine -> game) +0.312   b (game -> outcome, holding Combine) +0.277   direct c' +0.076
-  S4  indirect a x b +0.086 [-0.000, +0.209]  n=59  (standardized ranks; total = c' + ab = +0.163)
+  S4  indirect a x b +0.086 [+0.004, +0.199]  n=59  (standardized ranks; total = c' + ab = +0.163)
 
 B3. Exploratory rescue (rule in PRIMARY_TESTS.md, written after S3/S4 failed): other game burst measures
     q95 = the Game Juice+ piece; mean = mean per play; mixed = random-intercept player effect (every player
     with 1+ burst play, shrunk by play count). All size-free within OL.
     burst plays: within-player variance 0.766, between-player variance 0.024 (share 0.030); a lineman with 24 plays keeps 43% of his own mean
   q95 (current, 50+ plays)  (vs number of burst plays +0.46)
-      L1 Combine burst -> game burst, holding the 40         +0.207 [-0.067, +0.454]  n=59
-      L2 game burst -> non-burst peak pressure, play-mix controls +0.212 [-0.017, +0.412]  n=59
+      L1 Combine burst -> game burst, holding the 40         +0.207 [-0.083, +0.446]  n=59
+      L2 game burst -> non-burst peak pressure, play-mix controls +0.212 [-0.007, +0.413]  n=59
     does not meet the rule
   mean, 10+ burst plays  (vs number of burst plays +0.16)
-      L1 Combine burst -> game burst, holding the 40         +0.405 [+0.165, +0.574]  n=47
-      L2 game burst -> non-burst peak pressure, play-mix controls +0.270 [-0.019, +0.523]  n=47
+      L1 Combine burst -> game burst, holding the 40         +0.405 [+0.179, +0.571]  n=47
+      L2 game burst -> non-burst peak pressure, play-mix controls +0.270 [-0.046, +0.532]  n=47
     does not meet the rule
   mean, 20+ burst plays  (vs number of burst plays +0.27)
-      L1 Combine burst -> game burst, holding the 40         +0.398 [+0.148, +0.579]  n=41
-      L2 game burst -> non-burst peak pressure, play-mix controls +0.390 [+0.039, +0.632]  n=41
+      L1 Combine burst -> game burst, holding the 40         +0.398 [+0.141, +0.573]  n=41
+      L2 game burst -> non-burst peak pressure, play-mix controls +0.390 [+0.045, +0.642]  n=41
     meets the rule
   mixed-model effect, 1+ play  (vs number of burst plays +0.06)
-      L1 Combine burst -> game burst, holding the 40         +0.363 [+0.150, +0.528]  n=66
-      L2 game burst -> non-burst peak pressure, play-mix controls +0.231 [-0.062, +0.479]  n=59
+      L1 Combine burst -> game burst, holding the 40         +0.363 [+0.139, +0.514]  n=66
+      L2 game burst -> non-burst peak pressure, play-mix controls +0.231 [-0.054, +0.469]  n=59
     does not meet the rule
 
 ==============================================================================
@@ -172,7 +172,7 @@ Dominique Hampton  SS   2024  161    37.0         88.0      0            NaN    
 C2. Pair test (all pairs, no cherry-picking): same position group and class, 40 within 10 percentile points,
     Combine agility 30+ points apart, both with 20+ open plays. Does the more agile player move better in games?
   pairs 149 (players appear in several pairs, so the interval is approximate)
-  more agile player has higher game agility: 53% [45%, 60%] (50% = coin flip)
+  more agile player has higher game agility: 53% [44%, 61%] (50% = coin flip)
   more agile player has more career snaps: 56%
   pairs with a late-round player: 96; agile wins in games 53%
 
@@ -213,21 +213,21 @@ D1. Who reaches a game score (50+ plays)? Logistic regression, WR + DB + OL, wit
   OL: n=95, reached 60; coefficients (per full rank range): pick (later) -7.86, E +1.90, 40 -2.05
 
 D2. Key results re-weighted by 1 / P(reach 50 plays) (stands in for the players who never got there)
-  S2a WR + DB agility -> game agility, holding the 40, weighted +0.339 [+0.139, +0.496]  n=125
-      OL game burst -> non-burst peak pressure, play-mix controls, weighted +0.167 [-0.044, +0.379]  n=59
+  S2a WR + DB agility -> game agility, holding the 40, weighted +0.339 [+0.147, +0.493]  n=125
+      OL game burst -> non-burst peak pressure, play-mix controls, weighted +0.167 [-0.050, +0.374]  n=59
 
 D3. Snap floor: S1 on game agility rebuilt from plays at each floor (mean is unbiased at low counts; the
     95th percentile, which Game Juice+ uses, sinks with few plays). Size-free within group.
-  floor  10  mean  +0.301 [+0.129, +0.459]  n=142
-  floor  10  q95   +0.247 [+0.086, +0.399]  n=142
-  floor  25  mean  +0.288 [+0.124, +0.437]  n=134
-  floor  25  q95   +0.254 [+0.102, +0.411]  n=134
-  floor  50  mean  +0.275 [+0.082, +0.430]  n=125
-  floor  50  q95   +0.303 [+0.134, +0.454]  n=125
-  floor 100  mean  +0.248 [+0.061, +0.433]  n=112
-  floor 100  q95   +0.235 [+0.039, +0.401]  n=112
-  floor 200  mean  +0.344 [+0.114, +0.539]  n=90
-  floor 200  q95   +0.286 [+0.094, +0.463]  n=90
+  floor  10  mean  +0.301 [+0.131, +0.461]  n=142
+  floor  10  q95   +0.247 [+0.086, +0.385]  n=142
+  floor  25  mean  +0.288 [+0.103, +0.442]  n=134
+  floor  25  q95   +0.254 [+0.061, +0.426]  n=134
+  floor  50  mean  +0.275 [+0.092, +0.441]  n=125
+  floor  50  q95   +0.303 [+0.126, +0.472]  n=125
+  floor 100  mean  +0.248 [+0.072, +0.435]  n=112
+  floor 100  q95   +0.235 [+0.047, +0.393]  n=112
+  floor 200  mean  +0.344 [+0.139, +0.529]  n=90
+  floor 200  q95   +0.286 [+0.071, +0.458]  n=90
 
 D4. Does reaching the field depend on the trait? (selection on the predictor, WR + DB)
   reached 50+ plays  n=125  mean Combine agility pct 0.51  mean 40 pct 0.54  mean pick 129
@@ -237,9 +237,9 @@ D4. Does reaching the field depend on the trait? (selection on the predictor, WR
 E. SECONDARY CHECKS (from PRIMARY_TESTS.md)
 ==============================================================================
 id                                                                    claim  estimate  ci_low  ci_high   n       verdict
-S1                     WR+DB: Combine agility -> game agility beyond the 40     0.328   0.147    0.479 125 does not pass
-S3 OL: game burst -> peak pressure on non-burst dropbacks, holding play mix     0.212  -0.003    0.412  59 does not pass
-S4         OL: indirect effect Combine burst -> game burst -> peak pressure     0.086  -0.000    0.209  59 does not pass
-S2                S1 survives selection weights and every snap floor (mean)     0.339   0.139    0.496 125        passes
-  S1: A minus 40 = +0.187 [-0.092, +0.429]
+S1                     WR+DB: Combine agility -> game agility beyond the 40     0.328   0.150    0.483 125 does not pass
+S3 OL: game burst -> peak pressure on non-burst dropbacks, holding play mix     0.212   0.004    0.414  59        passes
+S4         OL: indirect effect Combine burst -> game burst -> peak pressure     0.086   0.004    0.199  59        passes
+S2                S1 survives selection weights and every snap floor (mean)     0.339   0.147    0.493 125        passes
+  S1: A minus 40 = +0.187 [-0.089, +0.438]
   S2: floor estimates (mean): +0.30, +0.29, +0.28, +0.25, +0.34

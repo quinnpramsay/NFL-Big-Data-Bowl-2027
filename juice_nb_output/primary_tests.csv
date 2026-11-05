@@ -1,6 +1,6 @@
 run_id,test,claim,estimate,ci_low,ci_high,n,verdict
-20261105T163235Z-ffa63e,P1,Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled),0.1716383888329125,0.029734052349357915,0.295690826826102,198,supported
-20261105T163235Z-ffa63e,P2,"Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE",0.1467970299993905,-0.09052689543219367,0.38290283964731053,68,not shown
-20261105T163235Z-ffa63e,P3,WR: tracked agility -> separation at throw (mixed model transfer),-0.05418648607561969,-0.32109484997370635,0.21272187782246696,72,not shown
-20261105T163235Z-ffa63e,P4,Snap takeover for top speed: k* = 10,,,,169,see table
-20261105T163235Z-ffa63e,P5,A-S top gear v0: Combine vs games (pooled ranks),0.2240606738858749,0.12784793247693607,0.31609559128919207,392,supported
+20261105T200039Z-a2540c,P1,Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled),0.1716383888,0.03889661044,0.2986023774,198,supported
+20261105T200039Z-a2540c,P2,"Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE",0.14679703,-0.1116638724,0.3780719837,68,not shown
+20261105T200039Z-a2540c,P3,WR: tracked agility -> separation at throw (mixed model transfer),-0.05418648646,-0.3210948503,0.2127218774,72,not shown
+20261105T200039Z-a2540c,P4,Snap takeover for top speed: k* = 10,,,,163,see table
+20261105T200039Z-a2540c,P5,A-S top gear v0: Combine vs games (pooled ranks),0.2240606739,0.1278479325,0.3160955913,392,supported

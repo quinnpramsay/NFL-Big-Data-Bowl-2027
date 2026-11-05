@@ -25,7 +25,7 @@ import pandas as pd
 from scipy.stats import rankdata
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from juice_common import CACHE, load_run_id, read_out, section_rng  # noqa: E402
+from juice_common import CACHE, get_file, load_run_id, read_out, section_rng  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 FWD = ROOT / "forward_test"
@@ -92,6 +92,11 @@ def freeze():
     run_id = load_run_id()
     RP = read_out("route_players.csv", run_id)
     w = RP[(RP.pgm == "WR") & (RP.routes >= MIN_ROUTES)].copy()
+    # Game Juice+ and draft year from their own tables: route_players.csv only carries them for players who also
+    # have a Combine Juice+ score.
+    GJ = read_out("game_juice_scores.csv", run_id).set_index("nfl_id")
+    w["game_juice"] = w.nfl_id.map(GJ.game_juice)
+    w["draft_year"] = w.nfl_id.map(pd.read_csv(get_file("players.csv")).set_index("nfl_id").draft_year)
     z = lambda v: (v - v.mean()) / v.std()  # noqa: E731
     w["pred_prethrow"] = (z(w.v_cut) + z(w.peak_pre)) / 2
     w = w.rename(columns={"sep": "pred_sep_2325", "game_juice": "pred_game_juice",

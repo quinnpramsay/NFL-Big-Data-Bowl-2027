@@ -1,4 +1,4 @@
-Run 20261105T163235Z-ffa63e. Combine-scored players: 414; with Game Juice+ (50+ plays): 270
+Run 20261105T200039Z-a2540c. Combine-scored players: 414; with Game Juice+ (50+ plays): 270
 
 ==============================================================================
 A. WHAT TRACKING ADDS BEYOND THE STOPWATCH, BY POSITION (audit item 3)
@@ -9,43 +9,43 @@ controls fixed. 95% bootstrap intervals (1,000 resamples of players). Pooled row
 Holding the 40, target Game Juice+:
 piece     Agility (A, position drills) Burst (E, yard 2-10 split + accel)       Speed (T, fastest 10 yd)
 group                                                                                                   
-ALL      +0.171 [+0.025, +0.303] n=215      +0.101 [-0.023, +0.213] n=270  +0.121 [-0.000, +0.245] n=270
-DB        +0.379 [+0.163, +0.560] n=64       +0.174 [-0.103, +0.425] n=64   +0.203 [-0.045, +0.444] n=64
-DL        +0.183 [-0.228, +0.515] n=30       +0.135 [-0.284, +0.511] n=30   +0.046 [-0.328, +0.402] n=30
-EDGE                               NaN       +0.091 [-0.313, +0.405] n=35   +0.173 [-0.225, +0.494] n=35
-OL        -0.137 [-0.376, +0.117] n=60       +0.146 [-0.133, +0.416] n=60   +0.028 [-0.255, +0.303] n=60
-WR        +0.218 [-0.025, +0.453] n=61       -0.049 [-0.309, +0.203] n=61   -0.004 [-0.246, +0.246] n=61
-WR + DB  +0.300 [+0.151, +0.443] n=125      +0.065 [-0.131, +0.256] n=125  +0.117 [-0.057, +0.290] n=125
+ALL      +0.171 [+0.046, +0.303] n=215      +0.101 [-0.030, +0.225] n=270  +0.121 [-0.004, +0.244] n=270
+DB        +0.379 [+0.163, +0.563] n=64       +0.174 [-0.085, +0.410] n=64   +0.203 [-0.067, +0.435] n=64
+DL        +0.183 [-0.258, +0.515] n=30       +0.135 [-0.301, +0.520] n=30   +0.046 [-0.354, +0.379] n=30
+EDGE                               NaN       +0.091 [-0.319, +0.401] n=35   +0.173 [-0.177, +0.510] n=35
+OL        -0.137 [-0.379, +0.109] n=60       +0.146 [-0.136, +0.423] n=60   +0.028 [-0.226, +0.300] n=60
+WR        +0.218 [-0.050, +0.439] n=61       -0.049 [-0.286, +0.208] n=61   -0.004 [-0.254, +0.229] n=61
+WR + DB  +0.300 [+0.145, +0.450] n=125      +0.065 [-0.116, +0.239] n=125  +0.117 [-0.055, +0.300] n=125
 
 Pooled (ALL), every control set:
-  Burst (E, yard 2-10 split + accel) holding the 40                           +0.101 [-0.023, +0.213]  n=270
-  Burst (E, yard 2-10 split + accel) holding 40 + RAS-style                   +0.133 [-0.002, +0.269]  n=249
-  Burst (E, yard 2-10 split + accel) holding 40 + RAS-style + snaps + pick    +0.133 [+0.003, +0.263]  n=249
-  Speed (T, fastest 10 yd)         holding the 40                           +0.121 [-0.000, +0.245]  n=270
-  Speed (T, fastest 10 yd)         holding 40 + RAS-style                   +0.099 [-0.030, +0.227]  n=249
-  Speed (T, fastest 10 yd)         holding 40 + RAS-style + snaps + pick    +0.097 [-0.033, +0.220]  n=249
-  Agility (A, position drills)     holding the 40                           +0.171 [+0.025, +0.303]  n=215
-  Agility (A, position drills)     holding 40 + RAS-style                   +0.172 [+0.030, +0.296]  n=198
-  Agility (A, position drills)     holding 40 + RAS-style + snaps + pick    +0.167 [+0.035, +0.295]  n=198
+  Burst (E, yard 2-10 split + accel) holding the 40                           +0.101 [-0.030, +0.225]  n=270
+  Burst (E, yard 2-10 split + accel) holding 40 + RAS-style                   +0.133 [+0.010, +0.251]  n=249
+  Burst (E, yard 2-10 split + accel) holding 40 + RAS-style + snaps + pick    +0.133 [-0.008, +0.267]  n=249
+  Speed (T, fastest 10 yd)         holding the 40                           +0.121 [-0.004, +0.244]  n=270
+  Speed (T, fastest 10 yd)         holding 40 + RAS-style                   +0.099 [-0.036, +0.225]  n=249
+  Speed (T, fastest 10 yd)         holding 40 + RAS-style + snaps + pick    +0.097 [-0.032, +0.210]  n=249
+  Agility (A, position drills)     holding the 40                           +0.171 [+0.046, +0.303]  n=215
+  Agility (A, position drills)     holding 40 + RAS-style                   +0.172 [+0.039, +0.299]  n=198
+  Agility (A, position drills)     holding 40 + RAS-style + snaps + pick    +0.167 [+0.014, +0.294]  n=198
 
 Agility holding the 40, by draft class (all groups with an agility score):
-  2023: +0.204 [-0.060, +0.430]  n=74
-  2024: +0.291 [+0.085, +0.472]  n=78
-  2025: +0.032 [-0.202, +0.256]  n=63
+  2023: +0.204 [-0.066, +0.419]  n=74
+  2024: +0.291 [+0.065, +0.484]  n=78
+  2025: +0.032 [-0.210, +0.268]  n=63
 
 Out-of-class R^2 predicting Game Juice+ (within-group ranks; each class predicted by a model fit on the others):
                model    r2  ci_low  ci_high   n
-      Tracked Juice+ 0.086   0.008    0.149 249
- 40 + tracked Juice+ 0.082   0.006    0.146 249
-        Juice+ 50/50 0.073   0.000    0.133 249
-40 + tracked agility 0.068  -0.009    0.128 249
-         Official 40 0.057  -0.013    0.113 249
-                 NGS 0.023  -0.028    0.060 249
-                Pick 0.015  -0.050    0.067 249
-           RAS-style 0.004  -0.044    0.038 249
-  Juice+ 50/50 minus Official 40: +0.017 [-0.028, +0.060]
-  40 + tracked Juice+ minus Official 40: +0.025 [-0.014, +0.058]
-  40 + tracked agility minus Official 40: +0.012 [-0.020, +0.041]
+      Tracked Juice+ 0.086   0.016    0.154 249
+ 40 + tracked Juice+ 0.082   0.011    0.152 249
+        Juice+ 50/50 0.073   0.006    0.135 249
+40 + tracked agility 0.068  -0.002    0.136 249
+         Official 40 0.057  -0.006    0.116 249
+                 NGS 0.023  -0.022    0.062 249
+                Pick 0.015  -0.045    0.068 249
+           RAS-style 0.004  -0.040    0.040 249
+  Juice+ 50/50 minus Official 40: +0.017 [-0.027, +0.059]
+  40 + tracked Juice+ minus Official 40: +0.025 [-0.011, +0.061]
+  40 + tracked agility minus Official 40: +0.012 [-0.020, +0.044]
 
 ==============================================================================
 B. THE CHAIN: COMBINE TRAIT -> GAME TRAIT -> FOOTBALL RESULT (audit item 1)
@@ -164,7 +164,7 @@ DB
 ==============================================================================
 C. DECISION RULE: TRACKED BURST VS NFL GET-OFF (audit item 2)
 ==============================================================================
-Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE: +0.147 [-0.091, +0.383]  n=68
+Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE: +0.147 [-0.112, +0.378]  n=68
   after removing draft pick: +0.074;  the official 40 on the same players: +0.369
 Audit rule: lead with pass rush if this reaches about 0.35, otherwise WR and DB agility -> WR and DB agility
 
@@ -278,19 +278,19 @@ Predictors: the first k plays (game only), the Combine (matched tracked piece + 
 Leave-one-class-out R^2. Takeover = smallest k where game-only beats Combine-only.
 Target and early read are size-free within position (weight and height removed), like Game Juice+.
 
-game top speed (n=169): Combine-only R^2 +0.044; game data takes over at k = 10 plays
+game top speed (n=163): Combine-only R^2 +0.032; game data takes over at k = 10 plays
   k  r2_game_only  r2_both  combine_adds
-  1        -0.020    0.059         0.080
-  2        -0.009    0.081         0.091
-  3         0.023    0.104         0.081
-  5         0.015    0.088         0.074
- 10         0.068    0.141         0.073
- 15         0.065    0.135         0.069
- 20         0.055    0.134         0.079
- 30         0.156    0.222         0.066
- 50         0.148    0.218         0.070
- 75         0.184    0.253         0.069
-100         0.198    0.276         0.078
+  1        -0.030    0.047         0.077
+  2        -0.017    0.070         0.087
+  3         0.015    0.093         0.077
+  5         0.008    0.077         0.069
+ 10         0.071    0.139         0.068
+ 15         0.071    0.134         0.064
+ 20         0.060    0.133         0.073
+ 30         0.178    0.237         0.058
+ 50         0.155    0.220         0.065
+ 75         0.190    0.254         0.063
+100         0.200    0.274         0.074
 
 game agility (n=140): Combine-only R^2 -0.028; game data takes over at k = 1 plays
   k  r2_game_only  r2_both  combine_adds
@@ -306,19 +306,19 @@ game agility (n=140): Combine-only R^2 -0.028; game data takes over at k = 1 pla
  75         0.178    0.146        -0.032
 100         0.199    0.164        -0.035
 
-game burst (n=47): Combine-only R^2 -0.170; game data takes over at k = 1 plays
+game burst (n=39): Combine-only R^2 -0.192; game data takes over at k = 1 plays
   k  r2_game_only  r2_both  combine_adds
-  1        -0.058   -0.183        -0.125
-  2        -0.030   -0.230        -0.199
-  3        -0.114   -0.358        -0.244
-  5        -0.006   -0.188        -0.182
- 10         0.006   -0.120        -0.125
- 15         0.001   -0.142        -0.143
- 20        -0.036   -0.185        -0.149
- 30         0.033   -0.094        -0.127
- 50         0.023   -0.086        -0.108
- 75         0.138    0.040        -0.098
-100         0.296    0.230        -0.066
+  1        -0.132   -0.247        -0.115
+  2        -0.060   -0.267        -0.206
+  3        -0.237   -0.474        -0.237
+  5        -0.028   -0.235        -0.207
+ 10         0.032   -0.102        -0.134
+ 15         0.010   -0.148        -0.157
+ 20         0.010   -0.145        -0.155
+ 30         0.057   -0.080        -0.137
+ 50         0.061   -0.064        -0.124
+ 75         0.228    0.136        -0.091
+100         0.324    0.229        -0.095
 
 ==============================================================================
 F. UNUSED JUICE: DO PLAYERS MOVING BELOW THEIR COMBINE CATCH UP IN YEAR 2? (audit item 6)
@@ -326,9 +326,9 @@ F. UNUSED JUICE: DO PLAYERS MOVING BELOW THEIR COMBINE CATCH UP IN YEAR 2? (audi
 Season means of each play metric (50+ plays per season), size-free and standardized within group and season.
 Test: year-2 score on year-1 score plus the Combine piece. A positive Combine coefficient means the Combine
 predicts year 2 beyond year 1 (catch-up). Regression to the mean is handled by keeping year 1 in the model.
-  game top speed: Combine coefficient -0.035 [-0.173, +0.123] (year-1 coef +0.65), n=127; 28 flagged as unused juice
-  game agility: Combine coefficient +0.256 [+0.103, +0.389] (year-1 coef +0.36), n=101; 26 flagged as unused juice
-  game burst: Combine coefficient +0.062 [-0.159, +0.356] (year-1 coef +0.42), n=67; 14 flagged as unused juice
+  game top speed: Combine coefficient -0.061 [-0.220, +0.103] (year-1 coef +0.65), n=109; 24 flagged as unused juice
+  game agility: Combine coefficient +0.233 [+0.074, +0.379] (year-1 coef +0.37), n=96; 24 flagged as unused juice
+  game burst: Combine coefficient +0.033 [-0.214, +0.358] (year-1 coef +0.54), n=56; 11 flagged as unused juice
 
 ==============================================================================
 G. SMALLER CHECKS (audit item 9)
@@ -381,8 +381,8 @@ Size adjustment (Spearman with Game Juice+):
 H. PRIMARY TESTS (from PRIMARY_TESTS.md)
 ==============================================================================
 test                                                                    claim  estimate  ci_low  ci_high   n   verdict
-  P1 Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled)     0.172   0.030    0.296 198 supported
-  P2                      Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE     0.147  -0.091    0.383  68 not shown
+  P1 Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled)     0.172   0.039    0.299 198 supported
+  P2                      Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE     0.147  -0.112    0.378  68 not shown
   P3        WR: tracked agility -> separation at throw (mixed model transfer)    -0.054  -0.321    0.213  72 not shown
-  P4                                     Snap takeover for top speed: k* = 10       NaN     NaN      NaN 169 see table
+  P4                                     Snap takeover for top speed: k* = 10       NaN     NaN      NaN 163 see table
   P5                         A-S top gear v0: Combine vs games (pooled ranks)     0.224   0.128    0.316 392 supported

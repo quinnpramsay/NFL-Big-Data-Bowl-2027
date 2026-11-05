@@ -1,0 +1,5 @@
+run_id,test,claim,estimate,ci_low,ci_high,n,passed,note
+20261105T200039Z-a2540c,R1,WR separation at the throw is a stable player trait (split-half),0.7736956318,,,68,True,
+20261105T200039Z-a2540c,R2,WR cut speed buys separation (player level and within player),0.3292743444,0.08739012459,0.5230636039,68,True,"within player +0.095 yd/SD [+0.074, +0.119], 29,460 plays"
+20261105T200039Z-a2540c,R3,Chain 40-yard dash -> top speed before throw -> separation (yd per Combine SD),0.03087169585,0.002305918644,0.06416508696,62,True,+0.26 EPA per 100 targets
+20261105T200039Z-a2540c,R3,Chain Combine drill cut speed -> cut speed -> separation (yd per Combine SD),0.0258308734,0.00366696335,0.06039395556,68,True,+0.21 EPA per 100 targets
