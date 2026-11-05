@@ -1,0 +1,318 @@
+Run 20261105T005112Z-69e030. Combine-scored players: 414
+
+==============================================================================
+1. SCORES VS SNAPS AND PLAYING TIME (career totals ranked within position and draft class)
+==============================================================================
+Raw = no controls. 'Holding pick' = the part of the score the draft did not already price in.
+Same players in every row of a block (players with all five scores).
+
+Career scrimmage snaps  (n=384)
+  Juice+                         raw +0.321 [+0.227, +0.409]   holding pick -0.014 [-0.114, +0.083]
+  Juice+ tracked-only            raw +0.240 [+0.141, +0.335]   holding pick -0.043 [-0.149, +0.058]
+  NGS athleticism                raw +0.282 [+0.179, +0.370]   holding pick -0.016 [-0.120, +0.088]
+  RAS-style                      raw +0.253 [+0.161, +0.347]   holding pick -0.083 [-0.187, +0.018]
+  Official 40                    raw +0.192 [+0.089, +0.293]   holding pick -0.162 [-0.253, -0.064]
+  Draft pick (earlier = higher)  raw +0.734 [+0.685, +0.779]   holding pick    n/a
+
+Share of games started  (n=384)
+  Juice+                         raw +0.300 [+0.211, +0.396]   holding pick -0.023 [-0.135, +0.081]
+  Juice+ tracked-only            raw +0.221 [+0.123, +0.316]   holding pick -0.051 [-0.156, +0.058]
+  NGS athleticism                raw +0.282 [+0.186, +0.375]   holding pick +0.006 [-0.098, +0.109]
+  RAS-style                      raw +0.216 [+0.119, +0.314]   holding pick -0.114 [-0.220, +0.002]
+  Official 40                    raw +0.162 [+0.063, +0.268]   holding pick -0.179 [-0.273, -0.076]
+  Draft pick (earlier = higher)  raw +0.700 [+0.642, +0.750]   holding pick    n/a
+
+Usable plays in tracking  (n=384)
+  Juice+                         raw +0.333 [+0.247, +0.420]   holding pick +0.000 [-0.104, +0.096]
+  Juice+ tracked-only            raw +0.251 [+0.147, +0.352]   holding pick -0.030 [-0.136, +0.070]
+  NGS athleticism                raw +0.289 [+0.195, +0.384]   holding pick -0.008 [-0.112, +0.095]
+  RAS-style                      raw +0.264 [+0.172, +0.362]   holding pick -0.069 [-0.168, +0.038]
+  Official 40                    raw +0.204 [+0.108, +0.301]   holding pick -0.148 [-0.242, -0.046]
+  Draft pick (earlier = higher)  raw +0.740 [+0.690, +0.784]   holding pick    n/a
+
+Reached 50+ tracked plays  (n=384)
+  Juice+                         raw +0.239 [+0.144, +0.329]   holding pick -0.021 [-0.114, +0.077]
+  Juice+ tracked-only            raw +0.167 [+0.077, +0.260]   holding pick -0.049 [-0.142, +0.050]
+  NGS athleticism                raw +0.190 [+0.089, +0.289]   holding pick -0.049 [-0.146, +0.049]
+  RAS-style                      raw +0.217 [+0.117, +0.305]   holding pick -0.029 [-0.121, +0.074]
+  Official 40                    raw +0.147 [+0.046, +0.243]   holding pick -0.114 [-0.205, -0.009]
+  Draft pick (earlier = higher)  raw +0.570 [+0.496, +0.639]   holding pick    n/a
+
+Juice+ minus each score, career snaps holding pick (paired bootstrap, same players):
+  Juice+ minus NGS athleticism  +0.002 [-0.083, +0.081]  no clear difference
+  Juice+ minus RAS-style        +0.068 [-0.034, +0.157]  no clear difference
+  Juice+ minus Official 40      +0.147 [+0.064, +0.225]  clear edge
+
+By position, career snaps holding pick (Spearman partial, within class):
+group  n  Juice+  Juice+ tracked-only  NGS athleticism  RAS-style  Official 40
+   DB 89   -0.18                -0.15            -0.17      -0.22        -0.24
+   DL 39    0.38                 0.34             0.20       0.05        -0.11
+ EDGE 46    0.16                 0.11             0.16      -0.24        -0.16
+   OL 94   -0.05                -0.04            -0.08      -0.13        -0.10
+   TE 31   -0.29                -0.28            -0.13      -0.29        -0.40
+   WR 85   -0.02                -0.15             0.05       0.23        -0.10
+
+==============================================================================
+2. RELIABILITY CEILING OF EACH OUTCOME (split-half within player, Spearman-Brown corrected)
+==============================================================================
+Each player's plays are split at random into two halves; the outcome mean in one half is correlated with the
+other across players (30 splits, players with 2x the floor). Ceiling = sqrt(reliability) = the most any score
+could correlate with the outcome at the typical play count.
+group                       outcome  reliability  ceiling  players  median_plays
+   WR           Separation at throw         0.78     0.88       60         318.5
+   WR               Yards per route         0.74     0.86       56         412.0
+   WR             YAC over expected         0.39     0.63       40          60.0
+   TE           Separation at throw         0.24     0.49       20         195.0
+   TE               Yards per route         0.57     0.76       19         231.0
+   DL                       Get-off         0.89     0.94       26         200.0
+   DL                 Pressure rate         0.47     0.69       23         167.0
+ EDGE                       Get-off         0.94     0.97       35         285.0
+ EDGE                 Pressure rate         0.57     0.76       33         210.0
+   OL Peak pressure prob. (flipped)         0.75     0.87       55         584.0
+   OL            Pressure held rate         0.68     0.83       55         607.0
+   DB        Coverage EPA (flipped)         0.44     0.66       56         472.0
+   DB  EPA on field (player's side)         0.62     0.79       44         987.5
+   DL  EPA on field (player's side)          NaN      NaN       11           NaN
+ EDGE  EPA on field (player's side)         0.55     0.74       19         958.0
+   OL  EPA on field (player's side)         0.76     0.87       45        1227.0
+   TE  EPA on field (player's side)          NaN      NaN        7           NaN
+   WR  EPA on field (player's side)         0.77     0.88       28         758.5
+For comparison, Game Juice+ pieces (split-half, well-sampled players): top 0.93, expl 0.85, agil 0.92
+
+==============================================================================
+3. BEYOND DRAFT SLOT: EVERY OUTCOME, HOLDING PICK
+==============================================================================
+
+WR: Separation at throw
+  Juice+                 +0.132 [-0.097, +0.355]  n=64
+  Juice+ tracked-only    +0.047 [-0.232, +0.293]  n=64
+  NGS athleticism        -0.100 [-0.313, +0.139]  n=64
+  RAS-style              +0.247 [-0.010, +0.468]  n=58
+  Official 40            +0.211 [-0.009, +0.417]  n=64
+
+WR: Yards per route
+  Juice+                 -0.113 [-0.336, +0.115]  n=62
+  Juice+ tracked-only    -0.122 [-0.340, +0.090]  n=62
+  NGS athleticism        -0.143 [-0.366, +0.113]  n=62
+  RAS-style              -0.031 [-0.280, +0.245]  n=56
+  Official 40            -0.009 [-0.229, +0.234]  n=62
+
+WR: YAC over expected
+  Juice+                 -0.561 [-0.731, -0.396]  n=48
+  Juice+ tracked-only    -0.574 [-0.731, -0.371]  n=48
+  NGS athleticism        -0.275 [-0.532, +0.006]  n=48
+  RAS-style              -0.264 [-0.537, +0.040]  n=42
+  Official 40            -0.468 [-0.656, -0.239]  n=48
+
+TE: Separation at throw
+
+TE: Yards per route
+
+DL: Get-off
+  Juice+                 -0.017 [-0.401, +0.359]  n=31
+  Juice+ tracked-only    -0.116 [-0.465, +0.249]  n=31
+  NGS athleticism        +0.145 [-0.248, +0.464]  n=31
+  Official 40            +0.360 [+0.048, +0.634]  n=31
+
+DL: Pressure rate
+  Juice+                 +0.318 [-0.060, +0.655]  n=31
+  Juice+ tracked-only    +0.305 [-0.058, +0.619]  n=31
+  NGS athleticism        +0.283 [-0.082, +0.591]  n=31
+  Official 40            +0.222 [-0.137, +0.561]  n=31
+
+EDGE: Get-off
+  Juice+                 +0.092 [-0.220, +0.437]  n=37
+  Juice+ tracked-only    +0.114 [-0.249, +0.438]  n=37
+  NGS athleticism        +0.074 [-0.262, +0.399]  n=37
+  RAS-style              +0.273 [-0.045, +0.538]  n=33
+  Official 40            +0.271 [-0.061, +0.521]  n=37
+
+EDGE: Pressure rate
+  Juice+                 +0.126 [-0.173, +0.475]  n=37
+  Juice+ tracked-only    +0.150 [-0.235, +0.480]  n=37
+  NGS athleticism        +0.137 [-0.173, +0.417]  n=37
+  RAS-style              +0.287 [-0.089, +0.624]  n=33
+  Official 40            +0.264 [-0.017, +0.548]  n=37
+
+OL: Peak pressure prob. (flipped)
+  Juice+                 -0.046 [-0.277, +0.212]  n=60
+  Juice+ tracked-only    -0.006 [-0.246, +0.257]  n=60
+  NGS athleticism        +0.015 [-0.227, +0.260]  n=60
+  RAS-style              -0.081 [-0.306, +0.162]  n=59
+  Official 40            +0.010 [-0.223, +0.242]  n=60
+
+OL: Pressure held rate
+  Juice+                 -0.019 [-0.291, +0.242]  n=61
+  Juice+ tracked-only    +0.017 [-0.260, +0.290]  n=61
+  NGS athleticism        +0.059 [-0.221, +0.333]  n=61
+  RAS-style              -0.036 [-0.315, +0.243]  n=60
+  Official 40            +0.015 [-0.250, +0.287]  n=61
+
+DB: Coverage EPA (flipped)
+  Juice+                 -0.211 [-0.427, +0.012]  n=60
+  Juice+ tracked-only    -0.131 [-0.355, +0.088]  n=60
+  NGS athleticism        +0.030 [-0.262, +0.267]  n=60
+  RAS-style              -0.120 [-0.397, +0.130]  n=52
+  Official 40            -0.122 [-0.342, +0.105]  n=60
+
+==============================================================================
+4. EACH POSITION'S BEST STAT, HOLDING THE 40 AND PICK
+==============================================================================
+What the tracked pieces and Juice+ add beyond the stopwatch and the draft, on the stat that fits each position.
+
+WR: Yards per route
+  Juice+                 -0.174 [-0.455, +0.121]  n=62
+  Burst (tracked)        -0.158 [-0.386, +0.118]  n=62
+  Speed (tracked)        -0.179 [-0.410, +0.098]  n=62
+  Agility (tracked)      -0.032 [-0.278, +0.280]  n=62
+  Game Juice+ (link 2)   +0.093 [-0.149, +0.323]  n=61
+
+WR: Separation at throw
+  Juice+                 -0.060 [-0.303, +0.180]  n=64
+  Burst (tracked)        -0.099 [-0.332, +0.171]  n=64
+  Speed (tracked)        -0.063 [-0.329, +0.173]  n=64
+  Agility (tracked)      -0.089 [-0.302, +0.144]  n=64
+  Game Juice+ (link 2)   +0.132 [-0.152, +0.387]  n=61
+
+TE: Yards per route
+
+EDGE: Pressure rate
+  Juice+                 -0.076 [-0.368, +0.207]  n=37
+  Burst (tracked)        +0.083 [-0.261, +0.427]  n=37
+  Speed (tracked)        -0.220 [-0.542, +0.106]  n=37
+  Game Juice+ (link 2)   -0.105 [-0.439, +0.204]  n=35
+
+DL: Pressure rate
+  Juice+                 +0.284 [-0.105, +0.609]  n=31
+  Burst (tracked)        +0.342 [-0.018, +0.613]  n=31
+  Speed (tracked)        +0.222 [-0.179, +0.592]  n=31
+  Agility (tracked)      +0.113 [-0.324, +0.467]  n=31
+
+DL: Get-off
+  Juice+                 -0.104 [-0.490, +0.268]  n=31
+  Burst (tracked)        -0.027 [-0.415, +0.377]  n=31
+  Speed (tracked)        -0.276 [-0.570, +0.069]  n=31
+  Agility (tracked)      -0.338 [-0.606, -0.026]  n=31
+
+EDGE: Get-off
+  Juice+                 -0.131 [-0.460, +0.159]  n=37
+  Burst (tracked)        +0.104 [-0.267, +0.436]  n=37
+  Speed (tracked)        -0.226 [-0.577, +0.169]  n=37
+  Game Juice+ (link 2)   -0.078 [-0.360, +0.224]  n=35
+
+OL: Peak pressure prob. (flipped)
+  Juice+                 -0.122 [-0.339, +0.090]  n=60
+  Burst (tracked)        -0.127 [-0.353, +0.138]  n=60
+  Speed (tracked)        -0.198 [-0.424, +0.057]  n=60
+  Agility (tracked)      +0.077 [-0.150, +0.337]  n=60
+  Game Juice+ (link 2)   -0.054 [-0.322, +0.190]  n=60
+
+DB: Coverage EPA (flipped)
+  Juice+                 -0.182 [-0.419, +0.107]  n=60
+  Burst (tracked)        -0.290 [-0.521, -0.061]  n=60
+  Speed (tracked)        +0.091 [-0.150, +0.345]  n=60
+  Agility (tracked)      -0.130 [-0.402, +0.107]  n=60
+  Game Juice+ (link 2)   +0.121 [-0.177, +0.435]  n=60
+
+==============================================================================
+5. SNAPS: RAW EDGES, AND LATE-ROUND PLAYERS ONLY (round 4+ and undrafted)
+==============================================================================
+All players, career snaps, NO pick control (paired bootstrap):
+  Juice+ minus NGS athleticism  +0.040 [-0.022, +0.107]  no clear difference  (n=384)
+  Juice+ minus RAS-style        +0.068 [-0.001, +0.139]  no clear difference  (n=384)
+  Juice+ minus Official 40      +0.129 [+0.064, +0.192]  clear edge  (n=384)
+
+Late-round players (round 4+ and undrafted): 285; with all five scores: 264
+  rounds: {'UDFA': 99, 4: 49, 5: 49, 7: 45, 6: 43}
+
+Career scrimmage snaps  (late-round, n=264)
+  Juice+                         raw +0.197 [+0.071, +0.320]   holding pick -0.006 [-0.144, +0.117]
+  Juice+ tracked-only            raw +0.120 [-0.006, +0.247]   holding pick -0.058 [-0.189, +0.068]
+  NGS athleticism                raw +0.162 [+0.039, +0.296]   holding pick -0.014 [-0.135, +0.116]
+  RAS-style                      raw +0.169 [+0.042, +0.302]   holding pick -0.053 [-0.169, +0.081]
+  Official 40                    raw +0.081 [-0.039, +0.205]   holding pick -0.193 [-0.312, -0.069]
+  Draft pick (earlier = higher)  raw +0.560 [+0.469, +0.643]   holding pick    n/a
+
+Share of games started  (late-round, n=264)
+  Juice+                         raw +0.151 [+0.015, +0.287]   holding pick -0.031 [-0.153, +0.111]
+  Juice+ tracked-only            raw +0.077 [-0.053, +0.207]   holding pick -0.083 [-0.203, +0.054]
+  NGS athleticism                raw +0.158 [+0.035, +0.289]   holding pick +0.008 [-0.128, +0.149]
+  RAS-style                      raw +0.106 [-0.016, +0.236]   holding pick -0.098 [-0.233, +0.043]
+  Official 40                    raw +0.027 [-0.090, +0.156]   holding pick -0.217 [-0.327, -0.084]
+  Draft pick (earlier = higher)  raw +0.492 [+0.386, +0.590]   holding pick    n/a
+
+Usable plays in tracking  (late-round, n=264)
+  Juice+                         raw +0.212 [+0.084, +0.336]   holding pick +0.010 [-0.123, +0.127]
+  Juice+ tracked-only            raw +0.132 [+0.009, +0.257]   holding pick -0.046 [-0.174, +0.081]
+  NGS athleticism                raw +0.171 [+0.042, +0.288]   holding pick -0.005 [-0.131, +0.134]
+  RAS-style                      raw +0.179 [+0.048, +0.312]   holding pick -0.044 [-0.164, +0.086]
+  Official 40                    raw +0.093 [-0.025, +0.221]   holding pick -0.182 [-0.294, -0.060]
+  Draft pick (earlier = higher)  raw +0.567 [+0.475, +0.653]   holding pick    n/a
+
+Reached 50+ tracked plays  (late-round, n=264)
+  Juice+                         raw +0.142 [+0.033, +0.246]   holding pick -0.031 [-0.156, +0.089]
+  Juice+ tracked-only            raw +0.072 [-0.048, +0.182]   holding pick -0.077 [-0.202, +0.038]
+  NGS athleticism                raw +0.075 [-0.038, +0.193]   holding pick -0.089 [-0.210, +0.027]
+  RAS-style                      raw +0.131 [+0.008, +0.249]   holding pick -0.055 [-0.165, +0.056]
+  Official 40                    raw +0.052 [-0.073, +0.177]   holding pick -0.175 [-0.286, -0.067]
+  Draft pick (earlier = higher)  raw +0.465 [+0.354, +0.559]   holding pick    n/a
+
+Late-round, career snaps, Juice+ minus each score:
+ no pick control:
+  Juice+ minus NGS athleticism  +0.035 [-0.049, +0.116]  no clear difference  (n=264)
+  Juice+ minus RAS-style        +0.028 [-0.070, +0.126]  no clear difference  (n=264)
+  Juice+ minus Official 40      +0.116 [+0.030, +0.205]  clear edge  (n=264)
+ holding pick:
+  Juice+ minus NGS athleticism  +0.008 [-0.088, +0.096]  no clear difference  (n=264)
+  Juice+ minus RAS-style        +0.047 [-0.086, +0.170]  no clear difference  (n=264)
+  Juice+ minus Official 40      +0.187 [+0.082, +0.289]  clear edge  (n=264)
+
+Late-round, share in the top third of career snaps (within position and class) by Juice+ tier:
+  <90     18/61 = 30%
+  90-110  64/194 = 33%
+  110+    19/30 = 63%
+  For comparison, top 15% by NGS: 22/43 = 51%
+  For comparison, top 15% by RAS-style: 18/40 = 45%
+  Top 15% by Juice+ (same rule): 24/46 = 52%
+
+==============================================================================
+6. FOOTBALL RESULTS, RAW: EVERY ATHLETICISM SCORE, SAME PLAYERS PER ROW
+==============================================================================
+Spearman within position, no controls, on the players who have every score in that block. 95% Fisher interval.
+Pooled rows combine all blocks on within-group ranks; the paired bootstrap tests Juice+ minus each score.
+  WR   Separation at throw            n= 58 | Juice+ +0.01 | NGS -0.13 | RAS-style +0.18 | 40 +0.09 | Pick -0.16 
+  WR   Yards per route                n= 56 | Juice+ +0.12 | NGS +0.05 | RAS-style +0.08 | 40 +0.17 | Pick +0.35 
+  WR   YAC over expected              n= 42 | Juice+ -0.39 | NGS -0.20 | RAS-style -0.20 | 40 -0.32 | Pick +0.20 
+  TE Separation at throw: only 19 players with every score; skipped
+  TE Yards per route: only 19 players with every score; skipped
+  DL   Get-off                        n= 29 | Juice+ +0.10 | NGS +0.21 | RAS-style +0.48 | 40 +0.40 | Pick +0.16 
+  DL   Pressure rate                  n= 29 | Juice+ +0.42 | NGS +0.35 | RAS-style +0.28 | 40 +0.32 | Pick +0.28 
+  EDGE Get-off                        n= 33 | Juice+ +0.22 | NGS +0.25 | RAS-style +0.38 | 40 +0.34 | Pick +0.36 
+  EDGE Pressure rate                  n= 33 | Juice+ +0.16 | NGS +0.28 | RAS-style +0.38 | 40 +0.33 | Pick +0.33 
+  OL   Peak pressure prob. (flipped)  n= 59 | Juice+ +0.07 | NGS +0.08 | RAS-style +0.01 | 40 +0.11 | Pick +0.33 
+  OL   Pressure held rate             n= 60 | Juice+ -0.02 | NGS +0.05 | RAS-style -0.03 | 40 +0.02 | Pick +0.04 
+  DB   Coverage EPA (flipped)         n= 52 | Juice+ -0.18 | NGS +0.04 | RAS-style -0.13 | 40 -0.15 | Pick -0.06 
+
+Blocks where each athleticism score has the highest correlation: {'RAS-style': 4, 'NGS': 3, '40': 2, 'Juice+': 1} (of 10)
+Correlations whose interval excludes 0:
+  WR   Yards per route                Pick      +0.351 [+0.098, +0.562]  n=56
+  WR   YAC over expected              Juice+    -0.391 [-0.621, -0.099]  n=42
+  WR   YAC over expected              40        -0.318 [-0.567, -0.016]  n=42
+  DL   Get-off                        RAS-style +0.484 [+0.142, +0.722]  n=29
+  DL   Get-off                        40        +0.404 [+0.044, +0.671]  n=29
+  DL   Pressure rate                  Juice+    +0.424 [+0.068, +0.684]  n=29
+  EDGE Get-off                        RAS-style +0.382 [+0.045, +0.641]  n=33
+  EDGE Get-off                        Pick      +0.365 [+0.024, +0.629]  n=33
+  EDGE Pressure rate                  RAS-style +0.383 [+0.045, +0.642]  n=33
+  OL   Peak pressure prob. (flipped)  Pick      +0.328 [+0.079, +0.539]  n=59
+
+Pooled over every position-outcome block (within-block ranks):
+  Juice+    +0.027  (player-outcome pairs = 451)
+  NGS       +0.066  (player-outcome pairs = 451)
+  RAS-style +0.102  (player-outcome pairs = 451)
+  40        +0.099  (player-outcome pairs = 451)
+  Pick      +0.161  (player-outcome pairs = 451)
+  Juice+ minus NGS       -0.039 [-0.101, +0.026]  (no clear difference; n=451)
+  Juice+ minus 40        -0.071 [-0.133, -0.009]  (clear; n=451)
+  Juice+ minus RAS-style -0.075 [-0.143, -0.011]  (clear; n=451)
+  Note: pairs from the same player in different blocks are not independent, so these intervals are a bit narrow.

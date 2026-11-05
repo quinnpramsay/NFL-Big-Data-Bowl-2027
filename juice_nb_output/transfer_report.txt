@@ -1,0 +1,387 @@
+Run 20261105T005112Z-69e030. Combine-scored players: 414; with Game Juice+ (50+ plays): 270
+
+==============================================================================
+A. WHAT TRACKING ADDS BEYOND THE STOPWATCH, BY POSITION (audit item 3)
+==============================================================================
+Partial correlation of each tracked piece with Game Juice+, on within-group percentile ranks, holding the
+controls fixed. 95% bootstrap intervals (1,000 resamples of players). Pooled rows add group dummies.
+
+Holding the 40, target Game Juice+:
+piece     Agility (A, position drills)     Burst (E, yard 2-10 split)       Speed (T, fastest 10 yd)
+group                                                                                               
+ALL      +0.172 [+0.026, +0.291] n=215  +0.081 [-0.042, +0.194] n=270  +0.089 [-0.039, +0.209] n=270
+DB        +0.367 [+0.136, +0.562] n=64   +0.087 [-0.161, +0.322] n=64   +0.240 [-0.003, +0.464] n=64
+DL        +0.261 [-0.126, +0.582] n=30   +0.275 [-0.178, +0.628] n=30   +0.088 [-0.321, +0.435] n=30
+EDGE                               NaN   +0.107 [-0.210, +0.423] n=35   +0.039 [-0.346, +0.422] n=35
+OL        -0.140 [-0.406, +0.119] n=60   +0.137 [-0.129, +0.381] n=60   -0.031 [-0.265, +0.225] n=60
+WR        +0.221 [-0.034, +0.449] n=61   -0.090 [-0.335, +0.180] n=61   -0.056 [-0.313, +0.228] n=61
+WR + DB  +0.295 [+0.141, +0.444] n=125  +0.000 [-0.176, +0.186] n=125  +0.116 [-0.079, +0.291] n=125
+
+Pooled (ALL), every control set:
+  Burst (E, yard 2-10 split)       holding the 40                           +0.081 [-0.042, +0.194]  n=270
+  Burst (E, yard 2-10 split)       holding 40 + RAS-style                   +0.086 [-0.043, +0.225]  n=249
+  Burst (E, yard 2-10 split)       holding 40 + RAS-style + snaps + pick    +0.092 [-0.039, +0.226]  n=249
+  Speed (T, fastest 10 yd)         holding the 40                           +0.089 [-0.039, +0.209]  n=270
+  Speed (T, fastest 10 yd)         holding 40 + RAS-style                   +0.077 [-0.058, +0.204]  n=249
+  Speed (T, fastest 10 yd)         holding 40 + RAS-style + snaps + pick    +0.078 [-0.048, +0.203]  n=249
+  Agility (A, position drills)     holding the 40                           +0.172 [+0.026, +0.291]  n=215
+  Agility (A, position drills)     holding 40 + RAS-style                   +0.169 [+0.036, +0.294]  n=198
+  Agility (A, position drills)     holding 40 + RAS-style + snaps + pick    +0.172 [+0.028, +0.305]  n=198
+
+Agility holding the 40, by draft class (all groups with an agility score):
+  2023: +0.142 [-0.127, +0.383]  n=74
+  2024: +0.306 [+0.114, +0.481]  n=78
+  2025: -0.003 [-0.297, +0.255]  n=63
+
+Out-of-class R^2 predicting Game Juice+ (within-group ranks; each class predicted by a model fit on the others):
+               model    r2  ci_low  ci_high   n
+      Tracked Juice+ 0.087   0.018    0.151 249
+        Juice+ 50/50 0.084   0.012    0.145 249
+ 40 + tracked Juice+ 0.084   0.009    0.152 249
+40 + tracked agility 0.064  -0.012    0.134 249
+         Official 40 0.061  -0.010    0.123 249
+                 NGS 0.037  -0.019    0.078 249
+           RAS-style 0.036  -0.027    0.087 249
+                Pick 0.023  -0.032    0.069 249
+  Juice+ 50/50 minus Official 40: +0.023 [-0.026, +0.069]
+  40 + tracked Juice+ minus Official 40: +0.023 [-0.017, +0.060]
+  40 + tracked agility minus Official 40: +0.003 [-0.028, +0.034]
+
+==============================================================================
+B. THE CHAIN: COMBINE TRAIT -> GAME TRAIT -> FOOTBALL RESULT (audit item 1)
+==============================================================================
+Spearman within group. Link 1 = Combine piece vs the same game piece. Link 2 = game piece vs outcome.
+Direct = Combine piece vs outcome. 95% Fisher intervals. Outcome floors are low on purpose (see OUTCOMES).
+
+WR
+  E                -> Separation at throw (route-adjusted)         L1 -0.09 (n= 61)  L2 -0.07 (n= 61)  direct -0.06  [link 1 (Combine -> game)]
+  E                -> YAC over expected                            L1 -0.09 (n= 61)  L2 -0.16 (n= 48)  direct -0.32  [link 1 (Combine -> game)]
+  E                -> Yards per route                              L1 -0.09 (n= 61)  L2 -0.10 (n= 61)  direct -0.07  [link 1 (Combine -> game)]
+  T                -> Separation at throw (route-adjusted)         L1 +0.57 (n= 61)  L2 +0.18 (n= 61)  direct +0.10  [link 2 (game -> result)]
+  T                -> YAC over expected                            L1 +0.57 (n= 61)  L2 -0.21 (n= 48)  direct -0.49  [link 2 (game -> result)]
+  T                -> Yards per route                              L1 +0.57 (n= 61)  L2 +0.03 (n= 61)  direct +0.01  [link 2 (game -> result)]
+  A                -> Separation at throw (route-adjusted)         L1 +0.35 (n= 61)  L2 +0.14 (n= 61)  direct -0.09  [link 2 (game -> result)]
+  A                -> YAC over expected                            L1 +0.35 (n= 61)  L2 +0.12 (n= 48)  direct -0.08  [link 2 (game -> result)]
+  A                -> Yards per route                              L1 +0.35 (n= 61)  L2 +0.27 (n= 61)  direct +0.06  [holds]
+  a0 (A-S)         -> Separation at throw (route-adjusted)         L1 +0.14 (n= 72)  L2 +0.14 (n= 64)  direct -0.07  [link 1 (Combine -> game)]
+  a0 (A-S)         -> YAC over expected                            L1 +0.14 (n= 72)  L2 -0.20 (n= 48)  direct +0.12  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Yards per route                              L1 +0.14 (n= 72)  L2 +0.03 (n= 62)  direct -0.06  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Separation at throw (route-adjusted)         L1 +0.27 (n= 72)  L2 +0.15 (n= 64)  direct +0.05  [link 2 (game -> result)]
+  v0 (A-S)         -> YAC over expected                            L1 +0.27 (n= 72)  L2 +0.05 (n= 48)  direct -0.32  [link 2 (game -> result)]
+  v0 (A-S)         -> Yards per route                              L1 +0.27 (n= 72)  L2 +0.17 (n= 62)  direct +0.04  [link 2 (game -> result)]
+  40 (stopwatch)   -> Separation at throw (route-adjusted)         L1 +0.51 (n= 61)  L2 +0.18 (n= 61)  direct +0.15  [link 2 (game -> result)]
+  40 (stopwatch)   -> YAC over expected                            L1 +0.51 (n= 61)  L2 -0.21 (n= 48)  direct -0.38  [link 2 (game -> result)]
+  40 (stopwatch)   -> Yards per route                              L1 +0.51 (n= 61)  L2 +0.03 (n= 61)  direct +0.11  [link 2 (game -> result)]
+
+TE
+  E                -> Separation at throw (route-adjusted)         L1 +0.09 (n= 20)  L2 +0.59 (n= 20)  direct +0.19  [link 1 (Combine -> game)]
+  E                -> YAC over expected                            L1 +0.09 (n= 20)  L2 -0.21 (n= 17)  direct +0.17  [link 1 (Combine -> game)]
+  E                -> Yards per route                              L1 +0.09 (n= 20)  L2 +0.08 (n= 20)  direct +0.10  [link 1 (Combine -> game)]
+  T                -> Separation at throw (route-adjusted)         L1 +0.36 (n= 20)  L2 -0.29 (n= 20)  direct -0.34  [link 1 (Combine -> game)]
+  T                -> YAC over expected                            L1 +0.36 (n= 20)  L2 +0.30 (n= 17)  direct +0.12  [link 1 (Combine -> game)]
+  T                -> Yards per route                              L1 +0.36 (n= 20)  L2 -0.04 (n= 20)  direct +0.31  [link 1 (Combine -> game)]
+  A                -> Separation at throw (route-adjusted)         L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  A                -> YAC over expected                            L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  A                -> Yards per route                              L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Separation at throw (route-adjusted)         L1 -0.18 (n= 28)  L2 -0.11 (n= 21)  direct +0.56  [link 1 (Combine -> game)]
+  a0 (A-S)         -> YAC over expected                            L1 -0.18 (n= 28)  L2 +0.43 (n= 17)  direct +0.27  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Yards per route                              L1 -0.18 (n= 28)  L2 +0.19 (n= 21)  direct +0.06  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Separation at throw (route-adjusted)         L1 +0.23 (n= 28)  L2 -0.00 (n= 21)  direct -0.61  [link 1 (Combine -> game)]
+  v0 (A-S)         -> YAC over expected                            L1 +0.23 (n= 28)  L2 +0.30 (n= 17)  direct +0.01  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Yards per route                              L1 +0.23 (n= 28)  L2 +0.32 (n= 21)  direct -0.20  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Separation at throw (route-adjusted)         L1 +0.39 (n= 20)  L2 -0.29 (n= 20)  direct -0.38  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> YAC over expected                            L1 +0.39 (n= 20)  L2 +0.30 (n= 17)  direct +0.31  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Yards per route                              L1 +0.39 (n= 20)  L2 -0.04 (n= 20)  direct +0.09  [link 1 (Combine -> game)]
+
+DL
+  E                -> Get-off (alignment-adjusted, faster = higher L1 +0.17 (n= 30)  L2 +0.32 (n= 29)  direct +0.13  [link 1 (Combine -> game)]
+  E                -> Pressure rate                                L1 +0.17 (n= 30)  L2 +0.17 (n= 29)  direct +0.44  [link 1 (Combine -> game)]
+  E                -> Time to pressure (quicker = higher)          L1 +0.17 (n= 30)  L2 +0.09 (n= 22)  direct -0.13  [link 1 (Combine -> game)]
+  T                -> Get-off (alignment-adjusted, faster = higher L1 -0.18 (n= 30)  L2 -0.08 (n= 29)  direct -0.07  [link 1 (Combine -> game)]
+  T                -> Pressure rate                                L1 -0.18 (n= 30)  L2 +0.07 (n= 29)  direct +0.36  [link 1 (Combine -> game)]
+  T                -> Time to pressure (quicker = higher)          L1 -0.18 (n= 30)  L2 +0.05 (n= 22)  direct -0.03  [link 1 (Combine -> game)]
+  A                -> Get-off (alignment-adjusted, faster = higher L1 +0.36 (n= 30)  L2 -0.17 (n= 29)  direct -0.22  [link 2 (game -> result)]
+  A                -> Pressure rate                                L1 +0.36 (n= 30)  L2 -0.21 (n= 29)  direct +0.19  [link 2 (game -> result)]
+  A                -> Time to pressure (quicker = higher)          L1 +0.36 (n= 30)  L2 -0.02 (n= 22)  direct +0.09  [link 2 (game -> result)]
+  a0 (A-S)         -> Get-off (alignment-adjusted, faster = higher L1 -0.01 (n= 34)  L2 +0.23 (n= 31)  direct +0.09  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Pressure rate                                L1 -0.01 (n= 34)  L2 +0.13 (n= 31)  direct -0.14  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Time to pressure (quicker = higher)          L1 -0.01 (n= 34)  L2 +0.09 (n= 22)  direct +0.07  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Get-off (alignment-adjusted, faster = higher L1 +0.28 (n= 34)  L2 +0.03 (n= 31)  direct +0.33  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Pressure rate                                L1 +0.28 (n= 34)  L2 +0.61 (n= 31)  direct +0.27  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Time to pressure (quicker = higher)          L1 +0.28 (n= 34)  L2 -0.22 (n= 22)  direct -0.03  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Get-off (alignment-adjusted, faster = higher L1 +0.07 (n= 30)  L2 -0.08 (n= 29)  direct +0.39  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Pressure rate                                L1 +0.07 (n= 30)  L2 +0.07 (n= 29)  direct +0.32  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Time to pressure (quicker = higher)          L1 +0.07 (n= 30)  L2 +0.05 (n= 22)  direct +0.11  [link 1 (Combine -> game)]
+
+EDGE
+  E                -> Get-off (alignment-adjusted, faster = higher L1 +0.01 (n= 35)  L2 +0.49 (n= 35)  direct +0.20  [link 1 (Combine -> game)]
+  E                -> Pressure rate                                L1 +0.01 (n= 35)  L2 +0.61 (n= 35)  direct +0.18  [link 1 (Combine -> game)]
+  E                -> Time to pressure (quicker = higher)          L1 +0.01 (n= 35)  L2 +0.73 (n= 33)  direct +0.03  [link 1 (Combine -> game)]
+  T                -> Get-off (alignment-adjusted, faster = higher L1 +0.32 (n= 35)  L2 -0.13 (n= 35)  direct +0.06  [link 1 (Combine -> game)]
+  T                -> Pressure rate                                L1 +0.32 (n= 35)  L2 -0.29 (n= 35)  direct +0.06  [link 1 (Combine -> game)]
+  T                -> Time to pressure (quicker = higher)          L1 +0.32 (n= 35)  L2 +0.00 (n= 33)  direct +0.25  [link 1 (Combine -> game)]
+  A                -> Get-off (alignment-adjusted, faster = higher L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  A                -> Pressure rate                                L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  A                -> Time to pressure (quicker = higher)          L1 +nan (n=  0)  L2 +nan (n=  0)  direct +nan  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Get-off (alignment-adjusted, faster = higher L1 -0.12 (n= 43)  L2 +0.16 (n= 37)  direct +0.27  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Pressure rate                                L1 -0.12 (n= 43)  L2 +0.26 (n= 37)  direct +0.18  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Time to pressure (quicker = higher)          L1 -0.12 (n= 43)  L2 +0.45 (n= 33)  direct -0.04  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Get-off (alignment-adjusted, faster = higher L1 +0.22 (n= 43)  L2 +0.23 (n= 37)  direct +0.06  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Pressure rate                                L1 +0.22 (n= 43)  L2 +0.41 (n= 37)  direct -0.02  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Time to pressure (quicker = higher)          L1 +0.22 (n= 43)  L2 +0.09 (n= 33)  direct +0.19  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Get-off (alignment-adjusted, faster = higher L1 +0.27 (n= 35)  L2 -0.13 (n= 35)  direct +0.35  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Pressure rate                                L1 +0.27 (n= 35)  L2 -0.29 (n= 35)  direct +0.35  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Time to pressure (quicker = higher)          L1 +0.27 (n= 35)  L2 +0.00 (n= 33)  direct +0.36  [link 1 (Combine -> game)]
+
+OL
+  E                -> Peak pressure prob. allowed (flipped, dropba L1 -0.10 (n= 60)  L2 +0.09 (n= 60)  direct +0.03  [link 1 (Combine -> game)]
+  E                -> Time to pressure allowed                     L1 -0.10 (n= 60)  L2 -0.00 (n= 55)  direct +0.15  [link 1 (Combine -> game)]
+  E                -> Pressure held rate                           L1 -0.10 (n= 60)  L2 +0.13 (n= 60)  direct -0.07  [link 1 (Combine -> game)]
+  T                -> Peak pressure prob. allowed (flipped, dropba L1 +0.17 (n= 60)  L2 -0.03 (n= 60)  direct +0.04  [link 1 (Combine -> game)]
+  T                -> Time to pressure allowed                     L1 +0.17 (n= 60)  L2 +0.17 (n= 55)  direct -0.16  [link 1 (Combine -> game)]
+  T                -> Pressure held rate                           L1 +0.17 (n= 60)  L2 -0.14 (n= 60)  direct -0.02  [link 1 (Combine -> game)]
+  A                -> Peak pressure prob. allowed (flipped, dropba L1 -0.09 (n= 60)  L2 -0.05 (n= 60)  direct +0.10  [link 1 (Combine -> game)]
+  A                -> Time to pressure allowed                     L1 -0.09 (n= 60)  L2 +0.16 (n= 55)  direct +0.10  [link 1 (Combine -> game)]
+  A                -> Pressure held rate                           L1 -0.09 (n= 60)  L2 -0.30 (n= 60)  direct +0.04  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Peak pressure prob. allowed (flipped, dropba L1 -0.01 (n= 71)  L2 -0.04 (n= 60)  direct -0.10  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Time to pressure allowed                     L1 -0.01 (n= 71)  L2 -0.10 (n= 58)  direct +0.17  [link 1 (Combine -> game)]
+  a0 (A-S)         -> Pressure held rate                           L1 -0.01 (n= 71)  L2 -0.08 (n= 61)  direct +0.05  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Peak pressure prob. allowed (flipped, dropba L1 +0.07 (n= 71)  L2 +0.16 (n= 60)  direct +0.14  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Time to pressure allowed                     L1 +0.07 (n= 71)  L2 +0.24 (n= 58)  direct -0.16  [link 1 (Combine -> game)]
+  v0 (A-S)         -> Pressure held rate                           L1 +0.07 (n= 71)  L2 +0.14 (n= 61)  direct -0.01  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Peak pressure prob. allowed (flipped, dropba L1 +0.12 (n= 60)  L2 -0.03 (n= 60)  direct +0.12  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Time to pressure allowed                     L1 +0.12 (n= 60)  L2 +0.17 (n= 55)  direct -0.13  [link 1 (Combine -> game)]
+  40 (stopwatch)   -> Pressure held rate                           L1 +0.12 (n= 60)  L2 -0.14 (n= 60)  direct +0.03  [link 1 (Combine -> game)]
+
+DB
+  E                -> EPA allowed in coverage (flipped)            L1 +0.29 (n= 64)  L2 -0.22 (n= 60)  direct -0.32  [link 2 (game -> result)]
+  T                -> EPA allowed in coverage (flipped)            L1 +0.22 (n= 64)  L2 +0.22 (n= 60)  direct -0.02  [link 1 (Combine -> game)]
+  A                -> EPA allowed in coverage (flipped)            L1 +0.32 (n= 64)  L2 +0.06 (n= 60)  direct -0.15  [link 2 (game -> result)]
+  a0 (A-S)         -> EPA allowed in coverage (flipped)            L1 +0.09 (n= 77)  L2 -0.06 (n= 60)  direct -0.34  [link 1 (Combine -> game)]
+  v0 (A-S)         -> EPA allowed in coverage (flipped)            L1 +0.24 (n= 77)  L2 +0.07 (n= 60)  direct +0.12  [link 2 (game -> result)]
+  40 (stopwatch)   -> EPA allowed in coverage (flipped)            L1 +0.20 (n= 64)  L2 +0.22 (n= 60)  direct -0.14  [link 1 (Combine -> game)]
+
+==============================================================================
+C. DECISION RULE: TRACKED BURST VS NFL GET-OFF (audit item 2)
+==============================================================================
+Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE: +0.168 [-0.086, +0.416]  n=68
+  after removing draft pick: +0.138;  the official 40 on the same players: +0.369
+Audit rule: lead with pass rush if this reaches about 0.35, otherwise WR and DB agility -> WR and DB agility
+
+==============================================================================
+D. MIXED MODELS: PLAY OUTCOME = CONTEXT + PLAYER EFFECT (audit item 5)
+==============================================================================
+Each play's outcome (already context-adjusted) = beta x Combine trait + player random effect + noise.
+beta is per 1 SD of the trait within position. 'transfer' = beta / SD of the player effect in a model with no
+trait, a correlation-like number: the share of true player-level spread the Combine trait lines up with.
+Every player with at least one play counts, in proportion to how much he shows. No snap floor.
+
+DB
+  game top speed                               ~ T_trk_plus   transfer +0.139 [-0.140, +0.419]  players= 78 plays= 45776 icc=0.013
+  game top speed                               ~ neg_forty    transfer +0.223 [-0.080, +0.526]  players= 78 plays= 45776 icc=0.013
+  game burst                                   ~ E_trk_plus   transfer +0.068 [-0.158, +0.294]  players= 76 plays= 21337 icc=0.055
+  game agility                                 ~ A_trk_plus   transfer +0.398 [+0.176, +0.620]  players= 78 plays= 45467 icc=0.022
+  EPA allowed in coverage (flipped)            ~ E_trk_plus   transfer -0.299 [-0.771, +0.173]  players= 76 plays= 32875 icc=0.001  UNSTABLE (icc<0.01)
+  EPA allowed in coverage (flipped)            ~ T_trk_plus   transfer +0.260 [-0.217, +0.736]  players= 76 plays= 32875 icc=0.001  UNSTABLE (icc<0.01)
+  EPA allowed in coverage (flipped)            ~ A_trk_plus   transfer -0.091 [-0.479, +0.296]  players= 76 plays= 32875 icc=0.001  UNSTABLE (icc<0.01)
+  EPA allowed in coverage (flipped)            ~ neg_forty    transfer +0.031 [-0.470, +0.533]  players= 76 plays= 32875 icc=0.001  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer +0.223 [-0.009, +0.455]  players= 76 plays= 21337 icc=0.055
+  game top speed                               ~ v0_c         transfer -0.063 [-0.322, +0.196]  players= 78 plays= 45776 icc=0.013
+
+DL
+  game top speed                               ~ T_trk_plus   transfer -0.191 [-0.562, +0.179]  players= 34 plays= 11537 icc=0.029
+  game top speed                               ~ neg_forty    transfer +0.277 [-0.065, +0.618]  players= 34 plays= 11537 icc=0.029
+  game burst                                   ~ E_trk_plus   transfer +0.461 [+0.079, +0.843]  players= 34 plays=  6516 icc=0.040
+  game agility                                 ~ A_trk_plus   transfer +0.389 [-0.010, +0.788]  players= 34 plays= 10673 icc=0.014
+  Get-off (alignment-adjusted, faster = higher ~ E_trk_plus   transfer +0.217 [-0.166, +0.599]  players= 34 plays=  8338 icc=0.074
+  Get-off (alignment-adjusted, faster = higher ~ T_trk_plus   transfer +0.144 [-0.214, +0.502]  players= 34 plays=  8338 icc=0.074
+  Get-off (alignment-adjusted, faster = higher ~ A_trk_plus   transfer -0.107 [-0.477, +0.263]  players= 34 plays=  8338 icc=0.074
+  Get-off (alignment-adjusted, faster = higher ~ neg_forty    transfer +0.381 [+0.071, +0.692]  players= 34 plays=  8338 icc=0.074
+  Pressure rate                                ~ E_trk_plus   transfer +0.996 [+0.553, +1.439]  players= 34 plays=  6901 icc=0.004  UNSTABLE (icc<0.01)
+  Pressure rate                                ~ T_trk_plus   transfer +0.699 [+0.258, +1.140]  players= 34 plays=  6901 icc=0.004  UNSTABLE (icc<0.01)
+  Pressure rate                                ~ A_trk_plus   transfer +0.490 [-0.069, +1.050]  players= 34 plays=  6901 icc=0.004  UNSTABLE (icc<0.01)
+  Pressure rate                                ~ neg_forty    transfer +0.534 [+0.074, +0.995]  players= 34 plays=  6901 icc=0.004  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer +0.145 [-0.246, +0.537]  players= 34 plays=  6516 icc=0.040
+  game top speed                               ~ v0_c         transfer +0.204 [-0.141, +0.549]  players= 34 plays= 11537 icc=0.029
+
+EDGE
+  game top speed                               ~ T_trk_plus   transfer -0.019 [-0.328, +0.290]  players= 43 plays= 20677 icc=0.041
+  game top speed                               ~ neg_forty    transfer +0.242 [-0.046, +0.529]  players= 43 plays= 20677 icc=0.041
+  game burst                                   ~ E_trk_plus   transfer -0.004 [-0.347, +0.339]  players= 43 plays= 13431 icc=0.035
+  Get-off (alignment-adjusted, faster = higher ~ E_trk_plus   transfer +0.037 [-0.271, +0.345]  players= 43 plays= 17461 icc=0.079
+  Get-off (alignment-adjusted, faster = higher ~ T_trk_plus   transfer +0.015 [-0.286, +0.315]  players= 43 plays= 17461 icc=0.079
+  Get-off (alignment-adjusted, faster = higher ~ neg_forty    transfer +0.240 [-0.042, +0.522]  players= 43 plays= 17461 icc=0.079
+  Pressure rate                                ~ E_trk_plus   transfer +0.094 [-0.326, +0.515]  players= 43 plays= 12828 icc=0.009  UNSTABLE (icc<0.01)
+  Pressure rate                                ~ T_trk_plus   transfer +0.170 [-0.193, +0.534]  players= 43 plays= 12828 icc=0.009  UNSTABLE (icc<0.01)
+  Pressure rate                                ~ neg_forty    transfer +0.450 [+0.133, +0.767]  players= 43 plays= 12828 icc=0.009  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer +0.153 [-0.209, +0.514]  players= 43 plays= 13431 icc=0.035
+  game top speed                               ~ v0_c         transfer +0.182 [-0.129, +0.492]  players= 43 plays= 20677 icc=0.041
+
+OL
+  game top speed                               ~ T_trk_plus   transfer -0.024 [-0.273, +0.226]  players= 73 plays= 55598 icc=0.033
+  game top speed                               ~ neg_forty    transfer -0.014 [-0.269, +0.241]  players= 73 plays= 55598 icc=0.033
+  game burst                                   ~ E_trk_plus   transfer -0.002 [-0.266, +0.261]  players= 73 plays= 31429 icc=0.023
+  game agility                                 ~ A_trk_plus   transfer -0.146 [-0.414, +0.123]  players= 73 plays= 50710 icc=0.019
+  Peak pressure prob. allowed (flipped, dropba ~ E_trk_plus   transfer +0.155 [-0.111, +0.420]  players= 73 plays= 37216 icc=0.013
+  Peak pressure prob. allowed (flipped, dropba ~ T_trk_plus   transfer +0.013 [-0.260, +0.286]  players= 73 plays= 37216 icc=0.013
+  Peak pressure prob. allowed (flipped, dropba ~ A_trk_plus   transfer +0.057 [-0.227, +0.342]  players= 73 plays= 37216 icc=0.013
+  Peak pressure prob. allowed (flipped, dropba ~ neg_forty    transfer +0.038 [-0.238, +0.315]  players= 73 plays= 37216 icc=0.013
+  Pressure held rate                           ~ E_trk_plus   transfer +0.086 [-0.203, +0.374]  players= 73 plays= 39004 icc=0.006  UNSTABLE (icc<0.01)
+  Pressure held rate                           ~ T_trk_plus   transfer -0.037 [-0.335, +0.261]  players= 73 plays= 39004 icc=0.006  UNSTABLE (icc<0.01)
+  Pressure held rate                           ~ A_trk_plus   transfer +0.013 [-0.297, +0.324]  players= 73 plays= 39004 icc=0.006  UNSTABLE (icc<0.01)
+  Pressure held rate                           ~ neg_forty    transfer -0.031 [-0.332, +0.270]  players= 73 plays= 39004 icc=0.006  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer +0.097 [-0.176, +0.369]  players= 73 plays= 31429 icc=0.023
+  game top speed                               ~ v0_c         transfer -0.128 [-0.376, +0.120]  players= 73 plays= 55598 icc=0.033
+
+TE
+  game top speed                               ~ T_trk_plus   transfer +0.496 [+0.104, +0.889]  players= 28 plays=  5901 icc=0.061
+  game top speed                               ~ neg_forty    transfer +0.322 [-0.084, +0.728]  players= 28 plays=  5901 icc=0.061
+  game burst                                   ~ E_trk_plus   transfer -0.062 [-0.470, +0.347]  players= 27 plays=  4974 icc=0.040
+  Separation at throw (route-adjusted)         ~ E_trk_plus   transfer +0.329 [-0.308, +0.966]  players= 28 plays=  6129 icc=0.002  UNSTABLE (icc<0.01)
+  Separation at throw (route-adjusted)         ~ T_trk_plus   transfer -0.301 [-1.033, +0.431]  players= 28 plays=  6129 icc=0.002  UNSTABLE (icc<0.01)
+  Separation at throw (route-adjusted)         ~ neg_forty    transfer -0.282 [-1.046, +0.481]  players= 28 plays=  6129 icc=0.002  UNSTABLE (icc<0.01)
+  YAC over expected                            ~ E_trk_plus   transfer +0.341 [-0.172, +0.853]  players= 25 plays=   790 icc=0.042
+  YAC over expected                            ~ T_trk_plus   transfer +0.127 [-0.484, +0.738]  players= 25 plays=   790 icc=0.042
+  YAC over expected                            ~ neg_forty    transfer +0.391 [-0.196, +0.977]  players= 25 plays=   790 icc=0.042
+  Yards per route                              ~ E_trk_plus   transfer +0.195 [-0.390, +0.780]  players= 28 plays=  6954 icc=0.003  UNSTABLE (icc<0.01)
+  Yards per route                              ~ T_trk_plus   transfer +0.408 [-0.241, +1.056]  players= 28 plays=  6954 icc=0.003  UNSTABLE (icc<0.01)
+  Yards per route                              ~ neg_forty    transfer +0.064 [-0.629, +0.757]  players= 28 plays=  6954 icc=0.003  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer -0.302 [-0.712, +0.108]  players= 27 plays=  4974 icc=0.040
+  game top speed                               ~ v0_c         transfer +0.432 [+0.065, +0.800]  players= 28 plays=  5901 icc=0.061
+
+WR
+  game top speed                               ~ T_trk_plus   transfer +0.340 [+0.110, +0.569]  players= 72 plays= 24923 icc=0.048
+  game top speed                               ~ neg_forty    transfer +0.397 [+0.151, +0.642]  players= 72 plays= 24923 icc=0.048
+  game burst                                   ~ E_trk_plus   transfer -0.054 [-0.291, +0.183]  players= 72 plays= 21481 icc=0.085
+  game agility                                 ~ A_trk_plus   transfer +0.334 [+0.085, +0.584]  players= 72 plays= 24882 icc=0.020
+  Separation at throw (route-adjusted)         ~ E_trk_plus   transfer -0.049 [-0.313, +0.215]  players= 72 plays= 26155 icc=0.015
+  Separation at throw (route-adjusted)         ~ T_trk_plus   transfer +0.113 [-0.149, +0.375]  players= 72 plays= 26155 icc=0.015
+  Separation at throw (route-adjusted)         ~ A_trk_plus   transfer -0.054 [-0.321, +0.213]  players= 72 plays= 26155 icc=0.015
+  Separation at throw (route-adjusted)         ~ neg_forty    transfer +0.204 [-0.077, +0.486]  players= 72 plays= 26155 icc=0.015
+  YAC over expected                            ~ E_trk_plus   transfer -0.309 [-1.042, +0.424]  players= 69 plays=  2983 icc=0.003  UNSTABLE (icc<0.01)
+  YAC over expected                            ~ T_trk_plus   transfer -1.106 [-1.858, -0.354]  players= 69 plays=  2983 icc=0.003  UNSTABLE (icc<0.01)
+  YAC over expected                            ~ A_trk_plus   transfer -0.289 [-1.133, +0.555]  players= 69 plays=  2983 icc=0.003  UNSTABLE (icc<0.01)
+  YAC over expected                            ~ neg_forty    transfer -0.745 [-1.602, +0.112]  players= 69 plays=  2983 icc=0.003  UNSTABLE (icc<0.01)
+  Yards per route                              ~ E_trk_plus   transfer +0.029 [-0.265, +0.324]  players= 72 plays= 29937 icc=0.006  UNSTABLE (icc<0.01)
+  Yards per route                              ~ T_trk_plus   transfer +0.028 [-0.265, +0.321]  players= 72 plays= 29937 icc=0.006  UNSTABLE (icc<0.01)
+  Yards per route                              ~ A_trk_plus   transfer +0.113 [-0.185, +0.411]  players= 72 plays= 29937 icc=0.006  UNSTABLE (icc<0.01)
+  Yards per route                              ~ neg_forty    transfer +0.169 [-0.148, +0.487]  players= 72 plays= 29937 icc=0.006  UNSTABLE (icc<0.01)
+  game burst                                   ~ a0_c         transfer +0.037 [-0.201, +0.274]  players= 72 plays= 21481 icc=0.085
+  game top speed                               ~ v0_c         transfer +0.293 [+0.055, +0.531]  players= 72 plays= 24923 icc=0.048
+
+==============================================================================
+E. A COMBINE IS WORTH N SNAPS (audit item 6)
+==============================================================================
+Rookie season only. Target = the 95th percentile of a player's rookie-season plays after play 100 (fixed for
+every k). The early read is the 95th percentile of his first k plays, the same best-effort statistic.
+Predictors: the first k plays (game only), the Combine (matched tracked piece + the 40), or both.
+Leave-one-class-out R^2. Takeover = smallest k where game-only beats Combine-only.
+
+game top speed (n=169): Combine-only R^2 +0.028; game data takes over at k = 3 plays
+  k  r2_game_only  r2_both  combine_adds
+  1        -0.032    0.049         0.081
+  2        -0.011    0.079         0.090
+  3         0.029    0.108         0.078
+  5         0.034    0.104         0.070
+ 10         0.084    0.150         0.065
+ 15         0.076    0.148         0.073
+ 20         0.062    0.142         0.080
+ 30         0.178    0.232         0.053
+ 50         0.179    0.234         0.054
+ 75         0.197    0.246         0.050
+100         0.229    0.291         0.063
+
+game agility (n=140): Combine-only R^2 -0.022; game data takes over at k = 1 plays
+  k  r2_game_only  r2_both  combine_adds
+  1        -0.008   -0.009        -0.001
+  2         0.005    0.006         0.001
+  3         0.011    0.007        -0.004
+  5         0.015    0.002        -0.014
+ 10         0.002   -0.015        -0.017
+ 15         0.058    0.036        -0.022
+ 20         0.086    0.049        -0.036
+ 30         0.124    0.089        -0.035
+ 50         0.151    0.117        -0.034
+ 75         0.237    0.204        -0.033
+100         0.306    0.277        -0.029
+
+game burst (n=127): Combine-only R^2 -0.056; game data takes over at k = 1 plays
+  k  r2_game_only  r2_both  combine_adds
+  1        -0.013   -0.065        -0.053
+  2         0.009   -0.045        -0.054
+  3         0.014   -0.045        -0.058
+  5         0.018   -0.042        -0.060
+ 10         0.016   -0.034        -0.049
+ 15         0.017   -0.029        -0.046
+ 20         0.051    0.008        -0.043
+ 30         0.055    0.016        -0.040
+ 50         0.147    0.105        -0.042
+ 75         0.188    0.163        -0.025
+100         0.208    0.181        -0.026
+
+==============================================================================
+F. UNUSED JUICE: DO PLAYERS MOVING BELOW THEIR COMBINE CATCH UP IN YEAR 2? (audit item 6)
+==============================================================================
+Season means of each play metric (50+ plays per season), standardized within group and season.
+Test: year-2 score on year-1 score plus the Combine piece. A positive Combine coefficient means the Combine
+predicts year 2 beyond year 1 (catch-up). Regression to the mean is handled by keeping year 1 in the model.
+  game top speed: Combine coefficient -0.033 [-0.162, +0.120] (year-1 coef +0.75), n=127; 29 flagged as unused juice
+  game agility: Combine coefficient +0.195 [+0.055, +0.322] (year-1 coef +0.44), n=101; 22 flagged as unused juice
+  game burst: Combine coefficient +0.020 [-0.116, +0.175] (year-1 coef +0.47), n=114; 22 flagged as unused juice
+
+==============================================================================
+G. SMALLER CHECKS (audit item 9)
+==============================================================================
+Game Juice+ SD within position (pooled): 5.7 points
+Tiers (Combine Juice+) among players with Game Juice+ (elite = top 16% in games within position):
+  <90     n= 37  elite in games 2/37 = 5.4% [1.5%, 17.7%]   above average 21.6% [11.4%, 37.2%]
+  90-110  n=170  elite in games 23/170 = 13.5% [9.2%, 19.5%]   above average 47.6% [40.3%, 55.1%]
+  110+    n= 63  elite in games 21/63 = 33.3% [22.9%, 45.6%]   above average 74.6% [62.7%, 83.7%]
+  Inside 90-110: Spearman +0.017 [-0.134, +0.167] n=170
+  Cubic vs straight line: F-test p = 0.862 (no evidence of a threshold)
+
+Who reached the field (Combine-scored players):
+  <90     n= 69  any usable snap 68.1%  |  50+ plays 53.6%
+  90-110  n=274  any usable snap 78.1%  |  50+ plays 62.0%
+  110+    n= 71  any usable snap 94.4%  |  50+ plays 88.7%
+  Mean Combine Juice+: 101.6 with a game score, 96.9 without
+  Combine Juice+ vs reaching 50+ plays (point-biserial, Spearman): +0.224
+  Preseason: 96 of 108 players with no regular-season play appear in preseason tracking (147 preseason games in the files).
+
+Late-round flag (pick 140+ or undrafted):
+  110+: 7/8 in the top half in games; under 110: 34/98 (88% vs 35%)
+  Players: Will Mallory (TE, 111 -> 108), Trey Palmer (WR, 117 -> 105), Marques Sigle (SS, 115 -> 105), Elijah Higgins (TE, 115 -> 104), Eric Watts (DE, 114 -> 104), Kitan Crawford (FS, 114 -> 102), Robert Beal (DE, 111 -> 100), Andrei Iosivas (WR, 113 -> 98)
+
+Carry-over by usable plays (within-group ranks, Pearson):
+  50-199   n= 81  +0.268 [+0.053, +0.460]
+  200-599  n= 86  +0.382 [+0.185, +0.549]
+  600+     n=103  +0.200 [+0.006, +0.379]
+
+Snaps confound (Spearman within group, pooled ranks):
+  game_juice   vs snaps +0.01   vs pick -0.18
+  juice_final  vs snaps +0.22   vs pick -0.38
+  neg_forty    vs snaps +0.08   vs pick -0.36
+  g_top_plus   vs snaps -0.09   vs pick -0.08
+  g_expl_plus  vs snaps +0.11   vs pick -0.12
+  g_agil_plus  vs snaps -0.01   vs pick -0.12
+  juice_final  with Game Juice+: +0.294 -> +0.299 holding snaps
+  neg_forty    with Game Juice+: +0.252 -> +0.251 holding snaps
+
+Size adjustment (Spearman with Game Juice+):
+  DB    n= 64  size-adjusted +0.40   unadjusted +0.40
+  DL    n= 30  size-adjusted +0.24   unadjusted +0.03
+  EDGE  n= 35  size-adjusted +0.39   unadjusted +0.36
+  OL    n= 60  size-adjusted +0.04   unadjusted +0.03
+  TE    n= 20  size-adjusted +0.65   unadjusted +0.58
+  WR    n= 61  size-adjusted +0.28   unadjusted +0.27
+  ALL   n=270  size-adjusted +0.29   unadjusted +0.26
+
+==============================================================================
+H. PRIMARY TESTS (from PRIMARY_TESTS.md)
+==============================================================================
+test                                                                    claim  estimate  ci_low  ci_high   n   verdict
+  P1 Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled)     0.169   0.036    0.294 198 supported
+  P2                      Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE     0.168  -0.086    0.416  68 not shown
+  P3        WR: tracked agility -> separation at throw (mixed model transfer)    -0.054  -0.321    0.213  72 not shown
+  P4                                      Snap takeover for top speed: k* = 3       NaN     NaN      NaN 169 see table
+  P5                         A-S top gear v0: Combine vs games (pooled ranks)     0.224   0.128    0.316 392 supported

@@ -1,0 +1,7 @@
+run_id,group,players,share_of_tracked
+20261105T005112Z-69e030,Players with Combine tracking,505,100.0
+20261105T005112Z-69e030,  no regular-season game snap in the tracking data,108,21.4
+20261105T005112Z-69e030,  only dead plays (under 3 s),1,0.2
+20261105T005112Z-69e030,  at least one usable game snap,396,78.4
+20261105T005112Z-69e030,  under the 50-play floor (not scored),76,15.0
+20261105T005112Z-69e030,"  scored (Game Juice+, 50+ plays)",320,63.4

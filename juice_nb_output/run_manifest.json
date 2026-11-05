@@ -1,0 +1,44 @@
+{
+  "run_id": "20261105T005112Z-69e030",
+  "git": "bd01468",
+  "utc": "20261105T005112Z",
+  "settings": {
+    "JUICE_VERSION": "blend_50_50",
+    "MIN_GAME_PLAYS": 50,
+    "BURST_METHOD": "split",
+    "TOP_METHOD": "fly10",
+    "DROP_BLOWOUTS": true,
+    "GARBAGE_WP": 0.05,
+    "MIN_PLAY_SECONDS": 3.0,
+    "MIN_FRAMES_OPEN": 20,
+    "GATE_ALPHA": 0.5,
+    "RUN_BLEND_SEARCH": false
+  },
+  "counts": {
+    "combine_tracked": 505,
+    "combine_scored": 414,
+    "game_any_usable": 396,
+    "game_scored": 320,
+    "both": 270,
+    "head_to_head": 249
+  },
+  "reliability": {
+    "combine_retest": {
+      "d15": 0.4120406624004601,
+      "v1": 0.4322844082455715,
+      "split": 0.4693507936889079,
+      "fly10": 0.9126817550915453,
+      "peak": 0.9050991820923263
+    },
+    "game_split_half": {
+      "top": 0.9289270528634954,
+      "expl": 0.852056221356029,
+      "agil": 0.9211361321330956
+    }
+  },
+  "game_weights": {
+    "top_z": 0.34377720343505525,
+    "expl_z": 0.31532885606493355,
+    "agil_z": 0.3408939405000112
+  }
+}

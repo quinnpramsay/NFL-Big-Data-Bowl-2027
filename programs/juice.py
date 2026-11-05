@@ -1,54 +1,38 @@
+"""Juice+: Combine movement measured from tracking, and the same movement measured in NFL games.
+
+Combine Juice+ is built from Combine tracking. Game Juice+ is built from 2023-2025 regular-season tracking.
+Both are on one scale: 100 = average for the position group, 10 points = one standard deviation.
+Position groups are the ones the competition covers: WR, TE, DB, OL, DL and EDGE (LB and RB are left out).
+
+Changes from the November 3 audit (juice_plus_improvement_plan.md):
+  - Burst (E) is the time from yard 2 to yard 10 of the tracked 40 (t2_10). The old d15/v1 pair started the clock
+    at the first frame at 1 yd/s, so one frame of error moved it by most of an SD.
+  - Game Juice+ needs MIN_GAME_PLAYS usable plays (default 50). Players below the floor are reported, not scored.
+  - Game Juice+ is the reliability-weighted average of its shrunk pieces on the 100 scale. It is no longer
+    re-standardized, so a final score always sits inside the range of its own pieces.
+  - The size model is plain out-of-fold least squares (no ridge). Unadjusted scores are saved next to it.
+  - Every output carries a run_id, and run_manifest.json records the settings of the run.
+  - The position-blend weight search is off by default (RUN_BLEND_SEARCH=1 to turn it on).
+
+Run in Colab or locally. Needs the competition files (Kaggle login) or JUICE_DATA_DIR pointing at them.
+Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_figures.py
 """
-Juice+: does Combine movement predict NFL game movement?
-========================================================
 
-Combine Juice+ (from Combine tracking) vs Game Juice+ (from 2023-2025 regular-season
-tracking). Only players with Combine tracking are used, so game data covers exactly the
-positions the Combine data covers. Position groups: DB, DL, EDGE, OL, TE, WR.
-
-Combine Juice+
-  E explosiveness (distance at 1.5 s, speed at 1.0 s), T top-end speed (fastest 10 yards),
-  A agility (position drills; only where the drills are reliable, not EDGE or TE).
-  Each tracked piece is adjusted for size and draft class and shrunk by its retest reliability.
-  It is then averaged with the official tests of the same trait (E: vertical, broad jump,
-  10-yard split; T: 40; A: 3-cone, shuttle), adjusted the same way. The pieces are averaged
-  and scaled to 100 +/- 10 within position group. BLEND_STOPWATCH = False gives tracked-only.
-
-Game Juice+
-  top speed, explosiveness and agility from game snaps, each as the player's best effort
-  (95th percentile) after adjusting for position, alignment, route (coverage job for DBs)
-  and play length. Plays in decided games (home win probability under 5% or over 95%) are
-  dropped. Explosiveness averages speed at 1.0 s and distance at 1.5 s after a standing-start
-  snap on role plays.
-  Components are weighted by their split-half reliability, and each is shrunk toward
-  average by the player's own number of plays, so players with few snaps count for less.
-  Game agility is left out where the Combine agility check fails, so both sides match.
-
-Checks
-  Correlation by position, draft class, rookie season only; season-to-season persistence;
-  outcome bands with risk ratios and AUC; Combine piece vs game piece; head-to-head vs NGS
-  and RAS-style scores; tracked top speed vs the official 40; out-of-class R-squared and a
-  fully held-out version of the formula; late-round flags and Combine Juice+ by round.
-
-Run:
-    pip install kagglehub python-dotenv pandas numpy scipy scikit-learn
-    python3 juice.py
-
-Credentials: KAGGLE_API_TOKEN (or ~/.kaggle/kaggle.json).
-Optional environment variables:
-    JUICE_DATA_DIR   folder holding the competition CSVs (skips Kaggle)
-    JUICE_OUT_DIR    output folder (default juice_full_output)
-    JUICE_CACHE_DIR  cache folder (default juice_cache; delete it to rebuild)
-"""
+# ## 0. Setup and settings
 
 import os
+import glob
+import json
+import hashlib
+import subprocess
 import warnings
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import LeaveOneOut, cross_val_predict
 from sklearn.pipeline import make_pipeline
@@ -56,72 +40,117 @@ from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
-
-# ---------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------
-
+# Folders. Set JUICE_DATA_DIR to a local copy of the competition files, or let kagglehub download them.
 COMP = "nfl-big-data-bowl-2027"
 DATA_DIR = os.getenv("JUICE_DATA_DIR")
-OUT = Path(os.getenv("JUICE_OUT_DIR", "juice_full_output"))
 CACHE = Path(os.getenv("JUICE_CACHE_DIR", "juice_cache"))
-for _p in (OUT, CACHE):
+OUT = Path(os.getenv("JUICE_OUT_DIR", "juice_nb_output"))
+if os.path.isdir("/kaggle/input"):
+    hits = glob.glob("/kaggle/input/**/players.csv", recursive=True)
+    if hits:
+        DATA_DIR = os.path.dirname(hits[0])
+    CACHE, OUT = Path("/kaggle/working/juice_cache"), Path("/kaggle/working/juice_nb_output")
+for _p in (CACHE, OUT):
     _p.mkdir(parents=True, exist_ok=True)
 
-if not DATA_DIR and not (
-    os.getenv("KAGGLE_API_TOKEN")
-    or (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))
-    or (Path.home() / ".kaggle" / "kaggle.json").exists()
-):
-    raise RuntimeError(
-        "No Kaggle credentials found. Set KAGGLE_API_TOKEN in .env, or put "
-        "kaggle.json in ~/.kaggle/, or set JUICE_DATA_DIR to a local folder."
-    )
-
+# Model settings.
 SEASONS = (2023, 2024, 2025)
-CHUNK_SIZE = int(os.getenv("JUICE_CHUNK_SIZE", 2_000_000))
+CHUNK_SIZE = 2_000_000
 MIN_PLAY_SECONDS = 3.0
-MIN_FRAMES = int(round(MIN_PLAY_SECONDS * 10))   # drop dead plays
-MIN_FRAMES_OPEN = 20                             # plays used for speed / agility
-
-POOLS = {"all": (1, 0)}            # every tracked player with game data: (min plays, min standing snaps)
-SEASON_POOLS = {"all": (1, 0)}
-RELIABILITY_MIN = (200, 50)        # reliabilities are estimated on well-sampled players only
-SEASON_MIN_PLAYS, SEASON_MIN_BURSTS = 100, 30   # persistence check, one season at a time
-
+MIN_FRAMES = int(round(MIN_PLAY_SECONDS * 10))   # plays shorter than this are dead plays
+MIN_FRAMES_OPEN = 20                             # plays used for top speed and agility
+# Which Combine score is the main one. "tracked_only" uses the tracked movement data alone.
+# "blend_50_50" averages each tracked piece with the official tests of the same trait.
+JUICE_VERSION = os.getenv("JUICE_VERSION", "blend_50_50")
+BLEND_STOPWATCH = JUICE_VERSION == "blend_50_50"
+DROP_BLOWOUTS, GARBAGE_WP = True, 0.05           # drop snaps when home win probability is under 5% or over 95%
 GATE_ALPHA, MIN_PLAYERS_DRILL, MIN_OVERLAP = 0.5, 20, 15
-BLEND_STOPWATCH = True             # average tracked pieces with official tests of the same trait
-GARBAGE_WP = 0.05                  # drop plays when home win probability is under 5% or over 95%
-BOOT_REPS = int(os.getenv("JUICE_BOOT_REPS", 2000))
-BELOW_AVG, ELITE = 100, 110
+RELIABILITY_MIN = (200, 50)                      # reliabilities are estimated on well-sampled players only
+SEASON_MIN = (100, 30)                           # persistence check, one season at a time
+MIN_GAME_PLAYS = int(os.getenv("MIN_GAME_PLAYS", "50"))   # usable open plays needed for a Game Juice+ score
+# Burst measure for the Combine E piece. "split" = time from yard 2 to yard 10 (default). "legacy" = old d15/v1.
+BURST_METHOD = os.getenv("BURST_METHOD", "split")
+SPLIT_FROM, SPLIT_TO = 2.0, 10.0
+# Top-end measure for the Combine T piece. "fly10" = fastest 10 yards (default). "peak" = peak smoothed speed.
+TOP_METHOD = os.getenv("TOP_METHOD", "fly10")
+RUN_BLEND_SEARCH = os.getenv("RUN_BLEND_SEARCH", "0") == "1"
+BELOW_AVG, ELITE, LOW_JUICE, HIGH_JUICE = 100, 110, 90, 110
 HIGH_PICK, LOW_PICK = 64, 140
-HIGH_JUICE, LOW_JUICE = 110, 90
-
-PGM = {
-    "T": "OL", "G": "OL", "C": "OL", "DT": "DL", "NT": "DL",
-    "DE": "EDGE", "OLB": "EDGE", "CB": "DB", "DB": "DB", "SS": "DB",
-    "FS": "DB", "WR": "WR", "TE": "TE",
-}
-ALIAS = {
-    "PASS_PRO-MIRROR_DRILL": "PASS_PRO_MIRROR_DRILL",
-    "SPEED_OUT_LEFT": "SPEED_OUT_ROUTE_LEFT",
-    "OVER_THE_SHOULDER_ADJUST": "OVER_SHOULDER_ADJUST",
-}
-KEYS = ["game_id", "play_id", "nfl_id"]
+BOOT = 1000
+REUSE_JUICE_PY_CACHE = False   # True only if game_play_table_v2.csv in the cache folder was written by juice.py
+YD_TO_MPH = 3600 / 1760
 rng = np.random.default_rng(42)
 
+# Position groups the competition covers: WR, TE, DB, OL and DL (DL is split into interior DL and EDGE).
+PGM = {"T": "OL", "G": "OL", "C": "OL", "DT": "DL", "NT": "DL", "DE": "EDGE", "OLB": "EDGE",
+       "CB": "DB", "DB": "DB", "SS": "DB", "FS": "DB", "WR": "WR", "TE": "TE"}
 
+# Run ID: one per run, written into every output table, so every number in the writeup can be traced to one run.
+SETTINGS = {k: v for k, v in dict(
+    JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, TOP_METHOD=TOP_METHOD,
+    DROP_BLOWOUTS=DROP_BLOWOUTS, GARBAGE_WP=GARBAGE_WP, MIN_PLAY_SECONDS=MIN_PLAY_SECONDS,
+    MIN_FRAMES_OPEN=MIN_FRAMES_OPEN, GATE_ALPHA=GATE_ALPHA, RUN_BLEND_SEARCH=RUN_BLEND_SEARCH).items()}
+try:
+    _git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                          cwd=Path(__file__).resolve().parent if "__file__" in globals() else None).stdout.strip()
+except Exception:
+    _git = ""
+_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+RUN_ID = f"{_stamp}-{hashlib.sha1(json.dumps(SETTINGS, sort_keys=True).encode()).hexdigest()[:6]}"
+print(f"Run ID: {RUN_ID}  (git {_git or 'n/a'})  settings: {SETTINGS}")
+ALIAS = {"PASS_PRO-MIRROR_DRILL": "PASS_PRO_MIRROR_DRILL", "SPEED_OUT_LEFT": "SPEED_OUT_ROUTE_LEFT",
+         "OVER_THE_SHOULDER_ADJUST": "OVER_SHOULDER_ADJUST"}
+KEYS = ["game_id", "play_id", "nfl_id"]
 
-# ---------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------
+# ## 1. Helpers
 
 _root = None
+
+
+def kaggle_login():
+    """Read Kaggle credentials from a .env file (this folder or any parent folder), or from Colab secrets.
+    Supports KAGGLE_USERNAME + KAGGLE_KEY, or a single KAGGLE_API_TOKEN. Never prompts."""
+    here = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+    for folder in [Path.cwd(), here, *here.parents]:
+        env_file = folder / ".env"
+        if env_file.is_file():
+            for line in env_file.read_text().splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.replace("export ", "").strip()
+                    os.environ.setdefault(k, v.strip().strip('"').strip("'"))
+            print(f"Read Kaggle settings from {env_file}")
+            break
+    # Also accept the name KAGGLE_API. New-style tokens (KGAT_...) are a token; older ones are a key.
+    api = os.environ.get("KAGGLE_API", "").strip()
+    if api:
+        os.environ["KAGGLE_API_TOKEN" if api.startswith("KGAT_") else "KAGGLE_KEY"] = api
+    try:
+        from google.colab import userdata
+        for k in ("KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN"):
+            try:
+                os.environ.setdefault(k, userdata.get(k))
+            except Exception:
+                pass
+    except Exception:
+        pass
+    have = [k for k in ("KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN", "KAGGLE_API") if os.environ.get(k)]
+    print("Kaggle variables found:", have or "none")
+
+
+def find_local_data():
+    """Folder that already holds the competition files: the kagglehub cache, or a data folder near this script."""
+    here = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+    spots = [Path.home() / ".cache" / "kagglehub" / "competitions" / COMP,
+             here / "data", here.parent / "data", Path.cwd() / "data"]
+    for spot in spots:
+        if spot.is_dir():
+            hits = sorted(spot.rglob("players.csv"))
+            if hits:
+                print(f"Using local competition files in {hits[0].parent}")
+                return str(hits[0].parent)
+    return None
 
 
 def get_file(name):
@@ -130,39 +159,40 @@ def get_file(name):
     if DATA_DIR:
         return os.path.join(DATA_DIR, name)
     if _root is None:
+        _root = find_local_data()
+    if _root is None:
         import kagglehub
+        kaggle_login()
         _root = kagglehub.competition_download(COMP)
-    direct = os.path.join(_root, name)
-    nested = os.path.join(_root, COMP, name)
+    direct, nested = os.path.join(_root, name), os.path.join(_root, COMP, name)
     return direct if os.path.exists(direct) else nested
 
 
-def load_csv(name, **kwargs):
-    path = get_file(name)
-    print(f"Using {name}: {path}")
-    return pd.read_csv(path, **kwargs)
+def load_csv(name, **kw):
+    return pd.read_csv(get_file(name), **kw)
 
 
 def save(df, name):
+    """Write a table with the run ID as its first column."""
+    df = df.copy()
+    df.insert(0, "run_id", RUN_ID)
     df.to_csv(OUT / name, index=False)
 
 
-def circ(degrees):
-    return (degrees + 180.0) % 360.0 - 180.0
+def circ(deg):
+    return (deg + 180.0) % 360.0 - 180.0
 
 
-def zs(series):
-    sd = series.std()
-    if not np.isfinite(sd) or sd == 0:
-        return pd.Series(np.nan, index=series.index)
-    return (series - series.mean()) / sd
+def zs(s):
+    sd = s.std()
+    return pd.Series(np.nan, index=s.index) if not np.isfinite(sd) or sd == 0 else (s - s.mean()) / sd
 
 
 def safe_spearman(x, y):
-    pair = pd.DataFrame({"x": np.asarray(x, float), "y": np.asarray(y, float)}).dropna()
-    if len(pair) < 4 or pair.x.nunique() < 2 or pair.y.nunique() < 2:
+    p = pd.DataFrame({"x": np.asarray(x, float), "y": np.asarray(y, float)}).dropna()
+    if len(p) < 4 or p.x.nunique() < 2 or p.y.nunique() < 2:
         return np.nan
-    return float(spearmanr(pair.x, pair.y)[0])
+    return float(spearmanr(p.x, p.y)[0])
 
 
 def fisher_ci(r, n):
@@ -172,8 +202,19 @@ def fisher_ci(r, n):
     return float(np.tanh(z - 1.96 * se)), float(np.tanh(z + 1.96 * se))
 
 
+def pooled_fisher(rs_ns):
+    """Pool correlations across groups by Fisher z weighted by n-3. Returns r, lo, hi."""
+    rs_ns = [(r, n) for r, n in rs_ns if np.isfinite(r) and abs(r) < 1 and n > 3]
+    if not rs_ns:
+        return np.nan, np.nan, np.nan
+    w = sum(n - 3 for _, n in rs_ns)
+    r = float(np.tanh(sum(np.arctanh(r) * (n - 3) for r, n in rs_ns) / w))
+    se = 1.96 / np.sqrt(w)
+    return r, float(np.tanh(np.arctanh(r) - se)), float(np.tanh(np.arctanh(r) + se))
+
+
 def sb(k, r):
-    """Spearman-Brown: reliability of the mean of k observations."""
+    """Spearman-Brown: reliability of the mean of k observations, each with reliability r."""
     k = np.asarray(k, dtype=float)
     if not np.isfinite(r) or r <= 0:
         return np.zeros_like(k, dtype=float)
@@ -190,33 +231,45 @@ def single_obs_reliability(r_full, k):
 
 def scale100(df, col, by="pgm"):
     g = df.groupby(by)[col]
-    sd = g.transform("std").replace(0, np.nan)
-    return 100 + 10 * (df[col] - g.transform("mean")) / sd
+    return 100 + 10 * (df[col] - g.transform("mean")) / g.transform("std").replace(0, np.nan)
 
 
 def wilson(k, n, z=1.96):
     if n == 0:
         return np.nan, np.nan
-    p_ = k / n
+    p = k / n
     den = 1 + z ** 2 / n
-    ctr = (p_ + z ** 2 / (2 * n)) / den
-    half = z * np.sqrt(p_ * (1 - p_) / n + z ** 2 / (4 * n ** 2)) / den
+    ctr = (p + z ** 2 / (2 * n)) / den
+    half = z * np.sqrt(p * (1 - p) / n + z ** 2 / (4 * n ** 2)) / den
     return ctr - half, ctr + half
 
 
+def auc_ci(y, s, reps=1000, seed=3):
+    y, s = np.asarray(y).astype(int), np.asarray(s, dtype=float)
+    ok = ~np.isnan(s)
+    y, s = y[ok], s[ok]
+    if len(y) < 10 or y.min() == y.max():
+        return np.nan, np.nan, np.nan
+    r, boots = np.random.default_rng(seed), []
+    for _ in range(reps):
+        i = r.integers(0, len(y), len(y))
+        if y[i].min() != y[i].max():
+            boots.append(roc_auc_score(y[i], s[i]))
+    lo, hi = np.percentile(boots, [2.5, 97.5]) if boots else (np.nan, np.nan)
+    return float(roc_auc_score(y, s)), float(lo), float(hi)
+
+
 def adjust(df, col, use_class=True, size_adj=True):
-    """Leave-one-out residual of `col` within each position group after removing
-    body size and draft class, standardized to mean 0, sd 1."""
+    """Leave-one-out residual of `col` within each position group after removing body size
+    (weight, weight squared, height) and draft class, standardized to mean 0, sd 1."""
     out = pd.Series(np.nan, index=df.index)
     for _, d in df.groupby("pgm"):
         d = d.dropna(subset=[col, "combine_weight", "combine_height"])
         if len(d) < 15:
             continue
         y = d[col].to_numpy()
-        feats = (
-            pd.get_dummies(d.draft_year, prefix="yr", drop_first=True).astype(float)
-            if use_class else pd.DataFrame(index=d.index)
-        )
+        feats = (pd.get_dummies(d.draft_year, prefix="yr", drop_first=True).astype(float)
+                 if use_class else pd.DataFrame(index=d.index))
         if size_adj and len(d) >= 25:
             feats["w"] = d.combine_weight.to_numpy()
             feats["h"] = d.combine_height.to_numpy()
@@ -224,46 +277,18 @@ def adjust(df, col, use_class=True, size_adj=True):
         if feats.shape[1] == 0:
             pred = np.array([np.delete(y, i).mean() for i in range(len(y))])
         else:
-            model = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20)))
-            pred = cross_val_predict(model, feats.to_numpy(), y, cv=LeaveOneOut())
-        resid = y - pred
-        if resid.std() > 0:
-            out.loc[d.index] = (resid - resid.mean()) / resid.std()
+            # Plain least squares, fit out of fold. Ridge left a weight link near -0.10 (audit item 9).
+            pred = cross_val_predict(LinearRegression(), feats.to_numpy(), y, cv=LeaveOneOut())
+        r = y - pred
+        if r.std() > 0:
+            out.loc[d.index] = (r - r.mean()) / r.std()
     return out
 
+# ## 2. Players and Combine tracking
+#
+# Only players in the six position groups **with Combine tracking** are scored, so the game data covers exactly the
+# positions the Combine data covers.
 
-def auc_ci(y, s, reps=1000, seed=3):
-    y = np.asarray(y).astype(int)
-    s = np.asarray(s, dtype=float)
-    ok = ~np.isnan(s)
-    y, s = y[ok], s[ok]
-    if len(y) < 10 or y.min() == y.max():
-        return np.nan, np.nan, np.nan
-    r_, boots = np.random.default_rng(seed), []
-    for _ in range(reps):
-        i = r_.integers(0, len(y), len(y))
-        if y[i].min() != y[i].max():
-            boots.append(roc_auc_score(y[i], s[i]))
-    lo, hi = np.percentile(boots, [2.5, 97.5]) if boots else (np.nan, np.nan)
-    return float(roc_auc_score(y, s)), float(lo), float(hi)
-
-
-def pooled_fisher(rs_ns):
-    """Pool correlations across groups by Fisher z weighted by n-3. Returns r, lo, hi."""
-    rs_ns = [(r, n) for r, n in rs_ns if np.isfinite(r) and abs(r) < 1 and n > 3]
-    if not rs_ns:
-        return np.nan, np.nan, np.nan
-    wsum = sum(n - 3 for _, n in rs_ns)
-    r = float(np.tanh(sum(np.arctanh(r) * (n - 3) for r, n in rs_ns) / wsum))
-    se = 1.96 / np.sqrt(wsum)
-    return r, float(np.tanh(np.arctanh(r) - se)), float(np.tanh(np.arctanh(r) + se))
-
-
-# ---------------------------------------------------------------------
-# [1/6] Players, Combine results, games
-# ---------------------------------------------------------------------
-
-print("\n[1/6] Loading player, Combine and game metadata...")
 players = load_csv("players.csv")
 combine = load_csv("combine_results.csv")
 games = load_csv("games.csv")
@@ -272,69 +297,100 @@ LOWER_BETTER = [c for c in ["forty", "ten_yd_split", "three_cone", "short_shuttl
 HIGHER_BETTER = [c for c in ["vertical", "broad_jump", "bench_reps"] if c in combine.columns]
 TESTS = combine[["nfl_id"] + LOWER_BETTER + HIGHER_BETTER].copy()
 
-pcols = [c for c in ["nfl_id", "display_name", "nfl_position", "draft_year",
-                     "draft_round", "draft_overall_pick"] if c in players.columns]
+pcols = [c for c in ["nfl_id", "display_name", "nfl_position", "draft_year", "draft_round",
+                     "draft_overall_pick"] if c in players.columns]
 D = players[pcols].copy()
 D["pgm"] = D.nfl_position.map(PGM)
-D = D.dropna(subset=["pgm"])
-ccols = [c for c in ["nfl_id", "combine_weight", "combine_height",
-                     "ngs_athleticism_score"] if c in combine.columns]
-D = D.merge(combine[ccols], on="nfl_id", how="left")
-print(f"Players in the six position groups: {len(D)}")
+D = D.dropna(subset=["pgm"]).merge(
+    combine[["nfl_id", "combine_weight", "combine_height", "ngs_athleticism_score"]], on="nfl_id", how="left")
 
-# ---------------------------------------------------------------------
-# [2/6] Combine Juice+
-# ---------------------------------------------------------------------
-
-print("\n[2/6] Processing Combine tracking...")
-ct = load_csv(
-    "combine_tracking.csv",
-    usecols=["nfl_id", "entity_type", "event_id", "drill_name",
-             "drill_type", "time", "x", "y", "s", "a"],
-)
+ct = load_csv("combine_tracking.csv",
+              usecols=["nfl_id", "entity_type", "event_id", "drill_name", "drill_type", "time", "x", "y", "s", "a"])
 ct = ct[(ct.entity_type == "PLAYER") & ct.nfl_id.notna()].copy()
 ct["nfl_id"] = ct.nfl_id.astype(int)
 ct = ct[ct.nfl_id.isin(D.nfl_id)]
-# Game data is limited to players, and so positions, that have Combine tracking.
 D = D[D.nfl_id.isin(ct.nfl_id)].copy()
-print(f"Players with Combine tracking: {len(D)}; by position: {D.nfl_position.value_counts().to_dict()}")
 ct["drill_name"] = ct.drill_name.replace(ALIAS)
 ct["time"] = pd.to_datetime(ct.time)
 ct = ct.sort_values(["event_id", "time"])
 ct["t"] = (ct.time - ct.groupby("event_id").time.transform("min")).dt.total_seconds()
+print(f"Players with Combine tracking in the scored position groups: {len(D)}")
+print(D.nfl_position.value_counts().to_dict())
+
+def show(df, digits=2):
+    print(df.round(digits).to_string())
 
 
+# ## 3. Combine Juice+
+#
+# Three pieces from the tracked 40-yard dash and the position drills, then one score per player.
+# - **E (explosiveness):** distance at 1.5 s and speed at 1.0 s.
+# - **T (top end):** the fastest 10 yards of the run.
+# - **A (agility):** position drills, used only for groups whose drills agree with each other.
+#
+# Each piece is adjusted for body size and draft class, then shrunk by how repeatable it is.
+# Section 3 ends by averaging each piece with the stopwatch tests of the same trait.
+
+def asp_fit(speed, acc, min_speed=2.0):
+    """Acceleration-speed line on the rising part of one run: acc = a0 - (a0 / v0) * speed.
+    a0 = first-step power (yd/s^2), v0 = top gear (yd/s). Needs no start time."""
+    m = np.isfinite(speed) & np.isfinite(acc) & (speed >= min_speed) & (acc > 0)
+    if m.sum() < 5:
+        return np.nan, np.nan
+    slope, a0 = np.polyfit(speed[m], acc[m], 1)
+    if slope >= 0 or a0 <= 0:
+        return np.nan, np.nan
+    return float(a0), float(-a0 / slope)
+
+
+# The tracked 40: burst, top end and the acceleration-speed line for each attempt.
 def feats40(a):
-    s, x, t = a.s.to_numpy(), a.x.to_numpy(), a.t.to_numpy()
-    moving = np.where(s >= 1.0)[0]
-    if len(moving) < 10:
+    s_all, x_all, t_all = a.s.to_numpy(), a.x.to_numpy(), a.t.to_numpy()
+    # Distance split from the start of the clip. Clips start near rest (median first-frame speed 0.6 yd/s,
+    # 7% at 1 yd/s or more), so progress is measured from the first frame, not from a speed threshold.
+    prog_all = np.maximum.accumulate(np.abs(x_all - x_all[0])) + np.arange(len(x_all)) * 1e-9
+    moving = np.where(s_all >= 1.0)[0]
+    if len(moving) < 10 or prog_all[-1] < 36:
         return None
+    t_split = float(np.interp(SPLIT_TO, prog_all, t_all) - np.interp(SPLIT_FROM, prog_all, t_all))
     i0 = moving[0]
-    s, x, t = s[i0:], x[i0:], t[i0:]
+    s, x, t = s_all[i0:], x_all[i0:], t_all[i0:]
     progress = np.maximum.accumulate(np.abs(x - x[0])) + np.arange(len(x)) * 1e-9
-    if progress[-1] < 36:
-        return None
     elapsed = t - t[0]
     best = 0.0
     for start in np.arange(5.0, min(progress[-1] - 10, 30.0) + 1e-6, 2.5):
         mask = (progress >= start) & (progress <= start + 10)
         if mask.sum() >= 5:
             best = max(best, float(s[mask].mean()))
-    smooth = pd.Series(s).rolling(3, center=True, min_periods=1).mean().to_numpy()
+    smooth = pd.Series(s_all).rolling(3, center=True, min_periods=1).mean().to_numpy()
+    acc = np.gradient(smooth, t_all)
+    rising = np.arange(len(smooth)) <= int(np.argmax(smooth))
+    a0, v0 = asp_fit(np.where(rising, smooth, np.nan), np.where(rising, acc, np.nan))
     return pd.Series({
         "d15": np.interp(1.5, elapsed, progress),
-        "v1": np.interp(1.0, elapsed, smooth),
+        "v1": np.interp(1.0, elapsed, pd.Series(s).rolling(3, center=True, min_periods=1).mean().to_numpy()),
+        "split": -t_split,             # faster = higher, so every piece reads "higher is better"
         "fly10": best if best > 0 else np.nan,
+        "peak": float(smooth.max()),
+        "a0_40": a0, "v0_40": v0,
+        "first_s": float(s_all[0]),
     })
 
-
+# Retest reliability: how well attempt 1 predicts attempt 2, within position.
 f40 = ct[ct.drill_name == "FORTY_YARD_DASH"]
 a40 = f40.groupby("event_id").apply(feats40).dropna(subset=["fly10"])
 a40["nfl_id"] = f40.groupby("event_id").nfl_id.first().reindex(a40.index).astype(int)
 a40 = a40.sort_index()
 a40["k"] = a40.groupby("nfl_id").cumcount()
 
-w2 = a40[a40.k < 2].pivot(index="nfl_id", columns="k", values=["d15", "v1", "fly10"]).dropna()
+print("First-frame speed of tracked 40 clips (yd/s):",
+      a40.first_s.quantile([0.1, 0.5, 0.9]).round(2).to_dict(),
+      f"share at 1 yd/s or more: {(a40.first_s >= 1).mean():.3f}")
+
+E_COLS = ["split"] if BURST_METHOD == "split" else ["d15", "v1"]
+T_COL = "peak" if TOP_METHOD == "peak" else "fly10"
+RT_FEATS = ["d15", "v1", "split", "fly10", "peak"]
+w2 = a40[a40.k < 2].pivot(index="nfl_id", columns="k", values=RT_FEATS).dropna()
 w2.columns = [f"{f}_{k}" for f, k in w2.columns]
 w2 = w2.reset_index().merge(D[["nfl_id", "pgm", "draft_year"]], on="nfl_id")
 
@@ -343,7 +399,7 @@ def retest_reliability(w):
     """Attempt-to-attempt Spearman WITHIN position after removing class means,
     pooled by Fisher z. Returns (explosiveness reliability, top-end reliability, dict)."""
     out = {}
-    for feat in ["d15", "v1", "fly10"]:
+    for feat in RT_FEATS:
         zsum, wsum = 0.0, 0.0
         for _, d in w.groupby("pgm"):
             if len(d) < 15:
@@ -355,19 +411,38 @@ def retest_reliability(w):
                 zsum += np.arctanh(r) * (len(d) - 3)
                 wsum += len(d) - 3
         out[feat] = float(np.tanh(zsum / wsum)) if wsum > 0 else 0.6
-    return (out["d15"] + out["v1"]) / 2, out["fly10"], out
+    return float(np.mean([out[c] for c in E_COLS])), out[T_COL], out
 
 
 REL_E, REL_T, RELI = retest_reliability(w2)
-print(f"Combine retest reliability (within position): d15={RELI['d15']:.2f}, "
-      f"v1={RELI['v1']:.2f}, fly10={RELI['fly10']:.2f}")
+print("Combine retest reliability (within position):", {k: round(v, 2) for k, v in RELI.items()})
+print(f"Burst method: {BURST_METHOD} {E_COLS} (reliability {REL_E:.2f}); top-end: {T_COL} ({REL_T:.2f})")
 
+# One row per player: average over attempts.
 P40 = a40.groupby("nfl_id").agg(
-    d15=("d15", "mean"), v1=("v1", "mean"), fly10=("fly10", "mean"),
+    d15=("d15", "mean"), v1=("v1", "mean"), split=("split", "mean"), fly10=("fly10", "mean"),
+    peak=("peak", "mean"), a0_40=("a0_40", "median"), v0_40=("v0_40", "median"),
     attempts=("fly10", "size"),
 ).reset_index()
 
+# Validity check for the burst fix: each tracked 40 feature against the official 40 and 10-yard split, within position.
+_val = P40.merge(D[["nfl_id", "pgm"]], on="nfl_id").merge(combine[["nfl_id", "forty", "ten_yd_split"]], on="nfl_id")
+VALID_ROWS = []
+for feat in ["d15", "v1", "split", "fly10", "peak", "a0_40", "v0_40"]:
+    row = {"feature": feat, "retest": RELI.get(feat, np.nan)}
+    for ref in ["forty", "ten_yd_split"]:
+        parts = [(abs(safe_spearman(g[feat], g[ref])), g[[feat, ref]].dropna().shape[0])
+                 for _, g in _val.groupby("pgm") if g[[feat, ref]].dropna().shape[0] >= 15]
+        row[f"vs_{ref}"] = pooled_fisher(parts)[0]
+        for grp, g in _val.groupby("pgm"):
+            row[f"vs_{ref}_{grp}"] = abs(safe_spearman(g[feat], g[ref]))
+    VALID_ROWS.append(row)
+BURST_VALIDITY = pd.DataFrame(VALID_ROWS)
+print("Tracked 40 features vs the stopwatch (|Spearman| within position, pooled):")
+show_cols = ["feature", "retest", "vs_forty", "vs_ten_yd_split"]
+print(BURST_VALIDITY[show_cols].round(2).to_string(index=False))
 
+# Agility drills. A group's agility counts only if its drills agree with each other (alpha >= 0.5).
 def drill_feats(a):
     s, t, acc = a.s.to_numpy(), a.t.to_numpy(), a.a.to_numpy()
     moving = np.where(s >= 1.0)[0]
@@ -403,6 +478,7 @@ FAM = {
                                "WHEEL_ROUTE", "CORNER_ROUTE"]),
 }
 COMMON = ["THREE_CONE_DRILL", "SHORT_SHUTTLE"]
+print("Drill types found in Combine tracking:", sorted(ad.drill_type.dropna().unique()))
 
 gate, rbar, agil_parts, GATE_ROWS, WIDE = {}, {}, [], [], {}
 for grp, (dtype, subs) in FAM.items():
@@ -444,13 +520,14 @@ for row in GATE_ROWS:
 
 C = D.merge(P40, on="nfl_id", how="left").merge(AGL, on="nfl_id", how="left")
 
+
 # Official tests that measure the same trait as each tracked piece (+1 higher is better, -1 lower is better).
 OFFICIAL = {
     "E": {"vertical": 1, "broad_jump": 1, "ten_yd_split": -1},
     "T": {"forty": -1},
     "A": {"three_cone": -1, "short_shuttle": -1},
 }
-TRACKED_COLS = ["d15", "v1", "fly10", "agil"]
+TRACKED_COLS = E_COLS + [T_COL, "agil"]
 OFFICIAL_COLS = sorted({c_ for d_ in OFFICIAL.values() for c_ in d_} & set(TESTS.columns))
 
 
@@ -462,8 +539,8 @@ def with_tests(df):
 def combine_pieces(z, c, rel_e, rel_t, rbar_map, gate_map, shrink=True, blend=True):
     """E, T, A from standardized columns z. Tracked pieces are shrunk by their reliability;
     with blend=True each is then averaged with the official tests of the same trait."""
-    E = pd.concat([z["d15"], z["v1"]], axis=1).mean(axis=1)
-    T = z["fly10"]
+    E = pd.concat([z[c_] for c_ in E_COLS], axis=1).mean(axis=1)
+    T = z[T_COL]
     A = z["agil"].where(c.pgm.map(gate_map).fillna(False).astype(bool))
     if shrink:
         k = c.attempts.fillna(1).clip(lower=1)
@@ -497,30 +574,36 @@ def build_scores(Cin, size_adj=True, shrink=True, blend=True):
     c["juice"] = c["raw_plus"]
     return c
 
-
+# Build the scores. S is the main score; TRK is tracked-only, kept to show what the blend adds.
 S = build_scores(C, blend=BLEND_STOPWATCH)
 S["juice_unadjusted"] = build_scores(C, size_adj=False, blend=BLEND_STOPWATCH)["juice"].values
 # Tracked-only version, saved so outcome.py can show what the blend adds.
 TRK = build_scores(C, blend=False)
 S["juice_tracked_only"] = TRK["juice"].values
+S["juice_5050"] = build_scores(C, blend=True)["juice"].values
 for comp in ["E", "T", "A"]:
     S[f"{comp}_trk_plus"] = TRK[f"{comp}_plus"].values
 FINAL = S[S.E_plus.notna() & S.T_plus.notna()].copy()
 FINAL["juice_final"] = FINAL["juice"]
 print(f"Players with a Combine Juice+ score: {len(FINAL)}")
-save(FINAL, "combine_juice_scores.csv")
 
-# ---------------------------------------------------------------------
-# [3/6] Game tracking pass (cached)
-# ---------------------------------------------------------------------
+# ## 4. Game tracking
+#
+# Every regular-season snap in 2023 to 2025 is reduced to a few numbers per player-play: peak speed, peak lateral
+# acceleration, speed at 1.0 s, distance at 1.5 s and the starting speed. This is the slow step, so the result is cached.
+# Game tracking is read in chunks and only for the columns needed.
 
-print("\n[3/6] Processing NFL game tracking (cached after the first run)...")
 REG = set(games.loc[games.season_type == "REG", "game_id"])
+KEEP_IDS = set(D.nfl_id)
 
 
 def summarize_chunk(df):
     cols = KEYS + ["n_after", "peak", "alat_max", "s0", "s10", "d15"]
     if df is None or len(df) == 0:
+        return pd.DataFrame(columns=cols)
+    # Only the Combine-tracked players are needed, which makes this pass faster and the cache small.
+    df = df[df.nfl_id.isin(KEEP_IDS)]
+    if len(df) == 0:
         return pd.DataFrame(columns=cols)
     df = df.sort_values(KEYS + ["time"])
     snap = df.loc[df["event"] == "ball_snap"].groupby(KEYS).time.min().rename("snap")
@@ -570,33 +653,54 @@ def game_pass():
     return out.drop_duplicates(KEYS)
 
 
-cache_file = CACHE / "game_play_table_v2.csv"   # v2 adds d15
+cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v4_tracked_players.csv"
+cache_file = CACHE / cache_name
 if cache_file.exists():
-    print(f"  Using cached play table: {cache_file}")
-    PT = pd.read_csv(cache_file)
+    print(f"Using cached play table: {cache_file}")
+    PT0 = pd.read_csv(cache_file)
 else:
-    PT = game_pass()
-    PT.to_csv(cache_file, index=False)
-print(f"  Player-plays in table: {len(PT)}")
+    PT0 = game_pass()
+    try:
+        PT0.to_csv(cache_file, index=False)
+    except OSError as e:
+        cache_file.unlink(missing_ok=True)
+        print(f"Could not save the cache ({e}). Continuing without it; free disk space to keep it.")
+print(f"Player-plays in table (all players): {len(PT0):,}")
 
-# ---------------------------------------------------------------------
-# [4/6] Roles, context adjustment, Game Juice+ components
-# ---------------------------------------------------------------------
+# ## 5. Who is in the game data, and why
+#
+# Plays are attached to the Combine-tracked players and to each play's role (route, coverage job, alignment,
+# win probability). Three filters follow:
+# - **Dead plays** (shorter than 3 s) carry no movement, so they are dropped.
+# - **Decided games** (home win probability under 5% or over 95%) are dropped *unless the player has no other snaps*.
+# - **Snap floor.** Game Juice+ needs MIN_GAME_PLAYS usable plays (default 50). Players under it are counted, not scored.
+#   The 95th percentile of a few plays sits below average, and shrinkage did not fully fix that (audit item 4).
 
-print("\n[4/6] Building role fields and context-adjusted game metrics...")
 pp = load_csv(
     "player_play.csv",
     usecols=KEYS + ["lined_up_position", "route_ran", "player_get_off", "coverage_assignment",
                     "pass_rushers_encountered", "pre_snap_home_team_win_probability"],
 )
-PT = (
-    PT.merge(games[["game_id", "season"]], on="game_id")
-      .merge(D[["nfl_id", "pgm", "nfl_position", "draft_year"]], on="nfl_id")
-      .merge(pp, on=KEYS, how="left")
+PT_ALL = (
+    PT0.merge(games[["game_id", "season"]], on="game_id")
+       .merge(D[["nfl_id", "pgm", "nfl_position", "draft_year"]], on="nfl_id")
+       .merge(pp, on=KEYS, how="left")
 )
-# Drop plays from decided games, where effort and snap counts change.
+ids_any = set(PT_ALL.nfl_id)
+
+# Dead plays out first, so a player is judged on plays that carry movement.
+PT = PT_ALL[PT_ALL.n_after >= MIN_FRAMES].copy()
+ids_usable = set(PT.nfl_id)
+
+# Decided games out, unless that would remove every snap the player has.
 wp = PT.pre_snap_home_team_win_probability
-PT = PT[~((wp <= GARBAGE_WP) | (wp >= 1 - GARBAGE_WP))].copy()
+PT["blowout"] = (wp <= GARBAGE_WP) | (wp >= 1 - GARBAGE_WP)
+has_clean = (~PT.blowout).groupby(PT.nfl_id).transform("any")
+PT["blowout_only_player"] = ~has_clean
+if DROP_BLOWOUTS:
+    PT = PT[~PT.blowout | PT.blowout_only_player].copy()
+print(f"Players who only have decided-game snaps (kept anyway): {PT.loc[PT.blowout_only_player, 'nfl_id'].nunique()}")
+
 PT["role"] = (
     (PT.pgm.isin(["WR", "TE"]) & PT.route_ran.notna())
     | (PT.pgm.isin(["DL", "EDGE"]) & PT.player_get_off.notna())
@@ -604,12 +708,13 @@ PT["role"] = (
     | ((PT.pgm == "OL") & PT.pass_rushers_encountered.notna())
 )
 PT["align"] = np.where(PT.pgm.isin(["DL", "EDGE", "DB", "WR"]), PT.lined_up_position.fillna("UNK"), "ALL")
-PT = PT[PT.n_after >= MIN_FRAMES].copy()
 PT["len_s"] = np.minimum(PT.n_after // 10, 10)
 
 
 def coverage_family(a):
-    """Collapse the 19 coverage assignments into the jobs a DB actually has."""
+    """Collapse coverage assignments into the jobs a DB actually has. Snaps with no assignment get their own key."""
+    if pd.isna(a) or a == "NO_ASSIGNMENT":
+        return "NO_JOB"
     a = str(a)
     if a == "MAN":
         return "MAN"
@@ -617,7 +722,7 @@ def coverage_family(a):
         return "DEEP_THIRD"
     if a.startswith("QUARTERS"):
         return "QUARTERS"
-    if a.startswith("DEEP_HALF"):
+    if a.startswith(("DEEP_HALF", "PREVENT")):
         return "DEEP_HALF"
     if a.startswith(("CURL_FLAT", "FLAT", "HOOK_CURL")) or a == "HOLE":
         return "SHORT_ZONE"
@@ -627,7 +732,25 @@ def coverage_family(a):
 # One "route" key for everyone: the route for WR/TE, the coverage job for DBs, nothing for the rest.
 PT["route"] = np.where(PT.pgm.isin(["WR", "TE"]), PT.route_ran.fillna("NO_ROUTE"),
                        np.where(PT.pgm == "DB", PT.coverage_assignment.map(coverage_family), "NONE"))
+print("DB coverage keys:", PT.loc[PT.pgm == "DB", "route"].value_counts().to_dict())
+leftover = PT.loc[(PT.pgm == "DB") & (PT.route == "OTHER"), "coverage_assignment"].value_counts()
+print("Assignments still in the OTHER bucket (check these):", leftover.to_dict())
 
+# ### Roster accounting
+# Every player with Combine tracking ends up in exactly one row.
+
+n_tracked = len(D)
+rows = [("Players with Combine tracking", n_tracked),
+        ("  no regular-season game snap in the tracking data", n_tracked - len(ids_any & set(D.nfl_id))),
+        ("  only dead plays (under 3 s)", len(ids_any - ids_usable)),
+        ("  at least one usable game snap", len(ids_usable))]
+ACCOUNT_ROWS = rows
+PT_PLAYS = PT.groupby("nfl_id").size()
+
+# ## 6. Context adjustment and game components
+#
+# A burst or a top speed means little without context, so each play is compared with plays at the same position,
+# alignment, route or coverage job, and play length. The player's score is the 95th percentile of those adjusted values.
 
 def demean(df, col, key_sets, min_cell=100):
     mu = df.groupby(key_sets[-1])[col].transform("mean")
@@ -679,8 +802,9 @@ def q95(s):
     return s.quantile(0.95)
 
 
-def game_components(P, min_plays, min_bursts, strict_join=False):
-    """One row per player: top speed, agility, explosiveness and counts (P already adjusted)."""
+def game_components(P, min_plays=1, min_bursts=0, strict_join=False):
+    """One row per player: top speed, agility, explosiveness and counts (P already adjusted).
+    The defaults keep every player with at least one usable play."""
     burst = P[burst_mask(P)]
     gb = burst.groupby("nfl_id").agg(nb=("expl_c", "size"), g_expl=("expl_c", q95))
     open_ = P[P.n_after >= MIN_FRAMES_OPEN]
@@ -692,7 +816,7 @@ def game_components(P, min_plays, min_bursts, strict_join=False):
     G["nb"] = G.nb.fillna(0)
     G = G[(G.nb >= min_bursts) & (G.npl >= min_plays)].reset_index()
     G = G.merge(
-        D[["nfl_id", "display_name", "nfl_position", "pgm", "draft_year",
+        D[["nfl_id", "display_name", "nfl_position", "pgm", "draft_year", "draft_overall_pick",
            "combine_weight", "combine_height"]], on="nfl_id",
     )
     for c in ["g_top", "g_agil"]:
@@ -701,17 +825,23 @@ def game_components(P, min_plays, min_bursts, strict_join=False):
 
 
 PTa = add_adjusted(PT)
-G_BY_POOL = {pool: game_components(PTa, mp, mb, strict_join=(mb > 0))
-             for pool, (mp, mb) in POOLS.items()}
-for pool, G in G_BY_POOL.items():
-    print(f"  Pool '{pool}': {len(G)} players with game data")
+# Play-level, context-adjusted movement for every usable play (no snap floor). juice_transfer.py uses it for the
+# mixed model and the snap-takeover test.
+save(PTa[KEYS + ["season", "pgm", "nfl_position", "n_after", "role", "align", "route", "s0",
+                 "peak_c", "alat_c", "expl_c"]], "play_level_movement.csv")
+G_ALL = game_components(PTa)
+print(f"Players with a game score: {len(G_ALL)} of {n_tracked}")
+print(f"  with any burst (explosiveness):   {(G_ALL.nb > 0).sum()}")
+print(f"  plays per player (median / min):  {G_ALL.npl.median():.0f} / {G_ALL.npl.min():.0f}")
 
-# ---------------------------------------------------------------------
-# [5/6] Reliabilities and Game Juice+
-# ---------------------------------------------------------------------
-
-print("\n[5/6] Estimating game reliabilities and building Game Juice+...")
-
+# ## 7. Reliability, shrinkage and Game Juice+
+#
+# How repeatable is each game piece? Split each well-sampled player's plays in two random halves and correlate them.
+# Each piece is then multiplied by `sb(n, r)`, the reliability of an average of n plays (Spearman-Brown). A player with
+# few plays keeps only a small share of his z-score, so low-snap players sit near 100.
+# The `confidence` column reports that share, so thin scores can be shown faded or filtered in any chart.
+# Known limit: the 95th percentile of very few plays is lower on average than that of many plays; shrinkage reduces
+# but does not fully remove this.
 
 def split_half(P, ids, col, stat, reps=30, burst=False):
     sub = P[P.nfl_id.isin(ids)]
@@ -734,8 +864,8 @@ def split_half(P, ids, col, stat, reps=30, burst=False):
 
 G_REL = game_components(PTa, *RELIABILITY_MIN, strict_join=True)
 if len(G_REL) < 60:
-    print("  Few well-sampled players; estimating reliabilities on all players instead.")
-    G_REL = G_BY_POOL["all"]
+    print("Few well-sampled players; estimating reliabilities on all players instead.")
+    G_REL = G_ALL
 rel_ids = G_REL.nfl_id
 GREL = {
     "top": split_half(PTa, rel_ids, "peak_c", q95),
@@ -749,10 +879,10 @@ K_TYP = {
 }
 GREL1 = {k: single_obs_reliability(GREL[k], K_TYP[k]) for k in GREL}
 GATE_G = bool(np.isfinite(GREL["agil"]) and GREL["agil"] >= 0.5)
-print(f"  Split-half reliability (full sample): {GREL}")
-print(f"  Typical observations per player:      {K_TYP}")
-print(f"  Single-play reliability:              {GREL1}")
-print(f"  Game agility included in Game Juice+: {GATE_G}")
+print("Split-half reliability (full sample):", {k: round(v, 2) for k, v in GREL.items()})
+print("Typical plays per well-sampled player:", {k: round(v) for k, v in K_TYP.items()})
+print("Single-play reliability:", {k: round(v, 3) for k, v in GREL1.items()})
+print("Game agility included:", GATE_G)
 
 COMP_COL = {"top_z": ("g_top", "npl", "top"),
             "expl_z": ("g_expl", "nb", "expl"),
@@ -761,40 +891,92 @@ USE = ["top_z", "expl_z"] + (["agil_z"] if GATE_G else [])
 _w = {z: max(float(np.nan_to_num(GREL[COMP_COL[z][2]])), 0.0) for z in USE}
 _tot = sum(_w.values())
 C_WEIGHTS = {z: (w / _tot if _tot > 0 else 1 / len(USE)) for z, w in _w.items()}
-print(f"  Game Juice+ component weights: {C_WEIGHTS}")
+print("Game Juice+ component weights:", {k: round(v, 2) for k, v in C_WEIGHTS.items()})
 
 
-def c_score(G, how="adjust", use_class=True):
-    """Game Juice+ from a component frame. how='adjust' removes size and
-    class (the main score); how='zscore' only standardizes within position."""
+def c_score(G, how="adjust"):
+    """Game Juice+ from a component frame. how='adjust' removes body size and draft class (main score);
+    how='zscore' only standardizes within position. `confidence` is the average shrink factor.
+
+    Each piece is shrunk toward 100 by its own reliability at the player's play count. The final score is the
+    reliability-weighted average of the shrunk pieces on the same 100 scale, with no second rescale, so it always
+    lies inside the range of its own pieces (audit item 4)."""
     g = G.copy()
     for z, (col, _, _) in COMP_COL.items():
-        if how == "adjust":
-            g[z] = adjust(g, col, use_class=use_class)
-        else:
-            g[z] = g.groupby("pgm")[col].transform(zs)
-    # Combine agility is only scored where its drills are reliable (not EDGE or TE), so leave
-    # game agility out for those groups too. Weights renormalize per player.
+        g[z] = adjust(g, col) if how == "adjust" else g.groupby("pgm")[col].transform(zs)
+    # Combine agility is only scored where its drills agree, so game agility is left out there too.
     g.loc[~g.pgm.map(gate).fillna(False).astype(bool), "agil_z"] = np.nan
-    num, den = 0, 0
+    num, den, conf = 0, 0, 0
     for z in USE:
         _, ncol, key = COMP_COL[z]
-        shrunk = g[z] * sb(g[ncol].fillna(0), GREL1[key])
+        k = pd.Series(sb(g[ncol].fillna(0), GREL1[key]), index=g.index)
+        shrunk = g[z] * k
+        g[z + "_shrunk"] = shrunk
         num = num + shrunk.fillna(0) * C_WEIGHTS[z]
         den = den + shrunk.notna() * C_WEIGHTS[z]
+        conf = conf + k.where(shrunk.notna(), 0) * C_WEIGHTS[z]
     g["raw"] = num / den.replace(0, np.nan)
-    g["game_juice"] = scale100(g, "raw")
-    for z, name in [("top_z", "g_top_plus"), ("expl_z", "g_expl_plus"), ("agil_z", "g_agil_plus")]:
-        g[name] = 100 + 10 * g[z]
+    g["confidence"] = conf / den.replace(0, np.nan)
+    g["game_juice"] = 100 + 10 * g["raw"]
+    for z, name in [("top_z", "g_top"), ("expl_z", "g_expl"), ("agil_z", "g_agil")]:
+        g[name + "_plus_unshrunk"] = 100 + 10 * g[z]
+        g[name + "_plus"] = 100 + 10 * g[z + "_shrunk"] if z + "_shrunk" in g else np.nan
     return g
 
 
-GAME = {pool: c_score(G) for pool, G in G_BY_POOL.items()}
+def piece_alpha(g, cols):
+    """Cronbach-style alpha of the game pieces within each position group (is Game Juice+ one trait?)."""
+    rows = []
+    for grp, d in g.groupby("pgm"):
+        d = d[[c for c in cols if d[c].notna().sum() >= 15]].dropna()
+        if d.shape[1] < 2 or len(d) < 15:
+            continue
+        cm = d.corr(method="spearman").to_numpy()
+        k = cm.shape[0]
+        rb = cm[np.triu_indices(k, 1)].mean()
+        rows.append({"pgm": grp, "n": len(d), "pieces": k, "mean_r": rb, "alpha": k * rb / (1 + (k - 1) * rb)})
+    return pd.DataFrame(rows)
 
-# Season-to-season persistence of Game Juice+ (the ceiling for any Combine link).
+
+# Snap floor (audit item 4): a 95th percentile of a handful of plays sits well below average, so players under the
+# floor are counted and reported but not given a game score.
+G_FLOOR = G_ALL[G_ALL.npl >= MIN_GAME_PLAYS].copy()
+GAME = c_score(G_FLOOR)
+GAME = GAME[GAME.game_juice.notna()].copy()
+print(f"Game Juice+ scored for {len(GAME)} players with {MIN_GAME_PLAYS}+ usable plays "
+      f"({(G_ALL.npl < MIN_GAME_PLAYS).sum()} below the floor); median confidence {GAME.confidence.median():.2f}")
+GAME_ALPHA = piece_alpha(GAME, ["top_z", "expl_z", "agil_z"])
+print("Do the game pieces measure one trait? (alpha by group; 0.5 is the gate used for Combine drills)")
+show(GAME_ALPHA)
+save(GAME_ALPHA, "game_piece_alpha.csv")
+# Bias check: mean unshrunk piece z by play count. Near 0 everywhere means the floor removed the small-sample drag.
+_bias = GAME.assign(bucket=pd.cut(GAME.npl, [0, 99, 199, 599, 100000], labels=["50-99", "100-199", "200-599", "600+"]))
+GAME_BIAS = _bias.groupby("bucket", observed=True)[["top_z", "expl_z", "agil_z", "game_juice"]].mean()
+GAME_BIAS["n"] = _bias.groupby("bucket", observed=True).size()
+print("Mean piece z and Game Juice+ by usable plays:")
+show(GAME_BIAS)
+save(GAME_BIAS.reset_index(), "game_bias_by_plays.csv")
+save(GAME.drop(columns=["raw"]), "game_juice_scores.csv")
+
+# Accounting table, final rows.
+ACCOUNT_ROWS.append((f"  under the {MIN_GAME_PLAYS}-play floor (not scored)", int((G_ALL.npl < MIN_GAME_PLAYS).sum())))
+ACCOUNT_ROWS.append((f"  scored (Game Juice+, {MIN_GAME_PLAYS}+ plays)", len(GAME)))
+ACCOUNT = pd.DataFrame(ACCOUNT_ROWS, columns=["group", "players"])
+ACCOUNT["share_of_tracked"] = (100 * ACCOUNT.players / n_tracked).round(1)
+show(ACCOUNT)
+save(ACCOUNT, "roster_accounting.csv")
+print("Scored players by number of usable plays:")
+print(pd.cut(GAME.npl, [0, 9, 49, 199, 100000], labels=["1-9", "10-49", "50-199", "200+"]).value_counts().sort_index().to_dict())
+by_pos = D.groupby("pgm").nfl_id.nunique().to_frame("tracked").join(GAME.groupby("pgm").nfl_id.nunique().rename("scored"))
+show(by_pos.fillna(0).astype(int), 0)
+small = by_pos.index[by_pos.tracked < 15].tolist()
+if small:
+    print(f"Too few Combine-tracked players to score on their own (under 15): {small}")
+
+# Season-to-season persistence of Game Juice+: the ceiling for any Combine link.
 persist_rows, season_scores = [], []
 for seas, sub in PT.groupby("season"):
-    Gs = game_components(add_adjusted(sub), SEASON_MIN_PLAYS, SEASON_MIN_BURSTS, strict_join=True)
+    Gs = game_components(add_adjusted(sub), *SEASON_MIN, strict_join=True)
     if len(Gs) < 10:
         continue
     Gs = c_score(Gs, how="zscore")
@@ -809,13 +991,9 @@ if season_scores:
             persist_rows.append({"season_pair": f"{a_}->{b_}", "n_players": len(x),
                                  "spearman": safe_spearman(x[a_], x[b_])})
 persist_df = pd.DataFrame(persist_rows)
+show(persist_df)
 
-# ---------------------------------------------------------------------
-# [6/6] Validation (everything below uses Game Juice+)
-# ---------------------------------------------------------------------
-
-print("\n[6/6] Comparing Combine Juice+ to Game Juice+ ...")
-
+# Score bands and stopwatch comparison scores (RAS-style is a percentile average of the official tests).
 BAND_EDGES = [-np.inf, LOW_JUICE, BELOW_AVG, ELITE, np.inf]
 BAND_LABELS = ["Low (<90)", "Below avg (90-100)", "Above avg (100-110)", "Elite (110+)"]
 
@@ -846,8 +1024,7 @@ CMP["forty_adj"] = adj_or_nan(CMP, "forty", -1)
 CMP["split_adj"] = adj_or_nan(CMP, "ten_yd_split", -1)
 CMP["forty_neg"] = -CMP["forty"] if "forty" in CMP.columns else np.nan
 
-
-# --- fully held-out Combine formula (each class scored by a formula fit without it) ---
+# Fully held-out Combine formula: each draft class is scored by a formula fitted without it.
 def gate_fn(ids):
     gt, rb_ = {g: False for g in FAM}, {g: np.nan for g in FAM}
     for g, wide in WIDE.items():
@@ -904,385 +1081,399 @@ for cls in sorted(C.draft_year.dropna().unique()):
     g_ = raw[te].groupby(C.pgm[te])
     JF[te] = 100 + 10 * (raw[te] - g_.transform("mean")) / g_.transform("std")
 JF_MAP = dict(zip(C.nfl_id[JF.notna()], JF[JF.notna()]))
-print(f"  Held-out Combine formula scored {len(JF_MAP)} players")
+
+# ---------------------------------------------------------------------
+# Analysis. Question: is the athleticism a player shows at the Combine, relative to his
+# position group, the same as the athleticism he shows in NFL games, relative to his
+# position group? And does Juice+ carry that over better than NGS, RAS-style and the 40?
+# ---------------------------------------------------------------------
+
+def hdr(text):
+    print("\n" + "=" * 78 + f"\n{text}\n" + "=" * 78)
 
 
-# --- rookie-season-only game score (one score per player from his draft-year season) ---
-def rookie_corr(pool):
-    mp, mb = SEASON_POOLS[pool]
-    rk = PT[PT.draft_year.notna() & (PT.season == PT.draft_year)]
-    if len(rk) == 0:
-        return np.nan, 0
-    G_rk = game_components(add_adjusted(rk), mp, mb, strict_join=(mb > 0))
-    if len(G_rk) < 45:
-        return np.nan, len(G_rk)
-    Mr = FINAL[["nfl_id", "juice_final"]].merge(c_score(G_rk)[["nfl_id", "draft_year", "game_juice"]],
-                                                on="nfl_id")
-    parts = []
-    for _, d in Mr.groupby("draft_year"):
-        d = d.dropna()
-        if len(d) >= 15:
-            parts.append((safe_spearman(d.juice_final, d.game_juice), len(d)))
-    return pooled_fisher(parts)[0], len(Mr)
+# One row per player with both scores, plus every comparison score.
+M = FINAL[["nfl_id", "juice_final", "juice_tracked_only", "juice_5050", "juice_unadjusted", "E_plus", "T_plus", "A_plus",
+           "E_trk_plus", "T_trk_plus", "A_trk_plus"]].merge(
+    GAME[["nfl_id", "display_name", "nfl_position", "pgm", "draft_year", "draft_overall_pick", "game_juice",
+          "g_top_plus", "g_expl_plus", "g_agil_plus", "g_top_plus_unshrunk", "g_expl_plus_unshrunk",
+          "g_agil_plus_unshrunk", "npl", "nb", "confidence"]], on="nfl_id")
+M = M.merge(CMP[["nfl_id", "combine_weight", "forty", "forty_neg", "ngs_athleticism_score", "ras_style",
+                 "ngs_adj", "ras_adj", "forty_adj"]], on="nfl_id", how="left")
+M["speed_score"] = M.combine_weight * 200 / M.forty ** 4
+M["juice_heldout"] = M.nfl_id.map(JF_MAP)
+M["g_above"] = M.game_juice >= BELOW_AVG
+
+SCORES = [("Juice+", "juice_final"),
+          ("Juice+ (held-out formula)", "juice_heldout"),
+          ("NGS athleticism", "ngs_athleticism_score"),
+          ("RAS-style", "ras_style"),
+          ("Official 40", "forty_neg"),
+          ("Speed score (weight x 40)", "speed_score"),
+          ("NGS, size-adjusted", "ngs_adj"),
+          ("RAS-style, size-adjusted", "ras_adj"),
+          ("Official 40, size-adjusted", "forty_adj")]
+NAME = dict((c, n) for n, c in SCORES)
+
+# Everything is compared as a within-position percentile, so groups on different scales mix fairly.
+for _, c in SCORES + [("game", "game_juice"), ("weight", "combine_weight")]:
+    M["X_" + c] = M.groupby("pgm")[c].rank(pct=True)
+# V: players who have every score, so each comparison uses exactly the same people.
+V = M.dropna(subset=[c for _, c in SCORES]).copy()
 
 
-# --- pool-level analysis ------------------------------------------------------------
-def merged_for(pool):
-    g = GAME[pool][["nfl_id", "display_name", "nfl_position", "pgm", "draft_year",
-                    "game_juice", "g_top_plus", "g_expl_plus", "g_agil_plus", "npl", "nb"]]
-    M = FINAL[["nfl_id", "juice_final", "E_plus", "T_plus", "A_plus"]].merge(g, on="nfl_id")
-    M["g_below"] = M.game_juice < BELOW_AVG
-    M["g_above"] = M.game_juice >= BELOW_AVG
-    M["g_elite"] = M.game_juice >= ELITE
-    M["c_band"] = pd.cut(M.juice_final, BAND_EDGES, labels=BAND_LABELS, right=False)
-    M["c_p"] = M.groupby("pgm").juice_final.rank(pct=True)
-    return M
+def pr(x, y):
+    return float(np.corrcoef(x, y)[0, 1])
 
 
-def risk_ratio(g, o, reps=2000, seed=7):
-    g, o = np.asarray(g, bool), np.asarray(o, bool)
-    if g.sum() == 0 or o.mean() == 0:
-        return np.nan, (np.nan, np.nan)
+def boot(x, y, reps=BOOT, seed=5):
     r_ = np.random.default_rng(seed)
-    est, boots = o[g].mean() / o.mean(), []
-    for _ in range(reps):
-        i = r_.integers(0, len(o), len(o))
-        gi, oi = g[i], o[i]
-        if gi.sum() and oi.mean() > 0:
-            boots.append(oi[gi].mean() / oi.mean())
-    lo, hi = np.percentile(boots, [2.5, 97.5]) if boots else (np.nan, np.nan)
-    return float(est), (float(lo), float(hi))
+    idx = r_.integers(0, len(x), (reps, len(x)))
+    return np.array([pr(x[i], y[i]) for i in idx])
 
-
-def risk_answer(label, group_mask, outcome):
-    g, o = np.asarray(group_mask, bool), np.asarray(outcome, bool)
-    n, k = int(g.sum()), int(o[g].sum())
-    rr, (rlo, rhi) = risk_ratio(g, o)
-    wlo, whi = wilson(k, n)
-    return {"claim": label, "k": k, "n": n, "pct": 100 * k / n if n else np.nan,
-            "wilson_lo": 100 * wlo, "wilson_hi": 100 * whi,
-            "base_pct": 100 * o.mean(), "risk_ratio": rr, "rr_lo": rlo, "rr_hi": rhi}
-
-
-def head_to_head(M):
-    """Juice+ vs NGS and RAS-style scores on the same players, raw and size-adjusted."""
-    if "ngs_athleticism_score" not in CMP.columns or CMP.ras_style.notna().sum() < 30:
-        return None
-    X = CMP[CMP.ngs_athleticism_score.notna() & CMP.ras_style.notna()].copy()
-    weight_r = {g: {s_: spearmanr(d.combine_weight, d[c_], nan_policy="omit")[0] for s_, c_ in
-                    [("Juice+", "juice_final"), ("NGS", "ngs_athleticism_score"), ("RAS", "ras_style")]}
-                for g, d in X.groupby("pgm") if len(d) >= 15}
-    V = (M[["nfl_id", "pgm", "juice_final", "game_juice", "g_top_plus", "T_plus"]]
-         .merge(CMP[["nfl_id", "ngs_athleticism_score", "ras_style", "ngs_adj", "ras_adj",
-                     "forty_adj", "split_adj", "forty_neg", "juice_unadjusted"]], on="nfl_id", how="left"))
-    V = V.dropna(subset=["ngs_athleticism_score", "ras_style", "ngs_adj", "ras_adj", "juice_unadjusted"])
-    if len(V) < 30:
-        return None
-
-    def pooled_rho(df, col, outcome="game_juice"):
-        return spearmanr(df.groupby("pgm")[col].rank(pct=True),
-                         df.groupby("pgm")[outcome].rank(pct=True), nan_policy="omit")[0]
-
-    def corr_row(df, col, outcome):
-        row = {"ALL": pooled_rho(df, col, outcome)}
-        for g, d in df.groupby("pgm"):
-            if len(d) >= 15:
-                row[g] = spearmanr(d[col], d[outcome], nan_policy="omit")[0]
-        return row
-
-    sc = {"Juice+": "juice_final", "Juice+ (no size adj.)": "juice_unadjusted",
-          "NGS": "ngs_athleticism_score", "NGS (size adj.)": "ngs_adj",
-          "RAS-style": "ras_style", "RAS-style (size adj.)": "ras_adj"}
-    ngs_tab = pd.DataFrame({k: corr_row(V, c_, "game_juice") for k, c_ in sc.items()}).T
-    U = V.dropna(subset=["T_plus", "forty_adj", "split_adj", "forty_neg"])
-    top_tab = (pd.DataFrame({k: corr_row(U, c_, "g_top_plus") for k, c_ in
-                             {"Tracked fastest 10": "T_plus", "Official 40 (size adj.)": "forty_adj",
-                              "10-yd split (size adj.)": "split_adj", "Official 40 (raw)": "forty_neg"}.items()}).T
-               if len(U) >= 15 else pd.DataFrame())
-    rng_b, boots = np.random.default_rng(1), {"NGS": [], "RAS": []}
-    for _ in range(1000):
-        b = V.iloc[rng_b.integers(0, len(V), len(V))]
-        j_ = pooled_rho(b, "juice_final")
-        boots["NGS"].append(j_ - pooled_rho(b, "ngs_athleticism_score"))
-        boots["RAS"].append(j_ - pooled_rho(b, "ras_style"))
-    edge = {k: (ngs_tab.loc["Juice+", "ALL"] - ngs_tab.loc[n_, "ALL"], *np.percentile(v, [2.5, 97.5]))
-            for k, v, n_ in [("NGS", boots["NGS"], "NGS"), ("RAS", boots["RAS"], "RAS-style")]}
-    # When the scores disagree
-    for col, nm in [("juice_final", "j_p"), ("ngs_athleticism_score", "n_p"), ("ras_style", "r_p")]:
-        X[nm] = 100 * X.groupby("pgm")[col].rank(pct=True)
-    X["gap"] = X.j_p - (X.n_p + X.r_p) / 2
-    Y = X.merge(M[["nfl_id", "game_juice"]], on="nfl_id")
-    Y["g_p"] = 100 * Y.groupby("pgm").game_juice.rank(pct=True)
-    disagree = {k: (int(m.sum()), float(Y.g_p[m].mean()) if m.sum() else np.nan) for k, m in
-                [("Juice+ higher by 20+ pct pts", Y.gap >= 20), ("agree (within 20)", Y.gap.abs() < 20),
-                 ("Juice+ lower by 20+ pct pts", Y.gap <= -20)]}
-    return {"n": len(V), "ngs_tab": ngs_tab, "top_tab": top_tab, "edge": edge,
-            "weight_r": weight_r, "disagree": disagree, "V": V}
-
-
-def incremental_and_frozen(M):
-    """Out-of-class R-squared (train on two classes, predict the third), with the in-sample
-    Combine Juice+ and with the fully held-out formula."""
-    keep = ["nfl_id", "draft_overall_pick", "combine_weight", "combine_height"] + [
-        c_ for c_ in ["ngs_athleticism_score"] + LOWER_BETTER + HIGHER_BETTER if c_ in CMP.columns]
-    IV = M[["nfl_id", "pgm", "draft_year", "juice_final", "game_juice", "npl"]].merge(
-        CMP[keep], on="nfl_id", how="left")
-
-    def pct_feature(col, lower_better=False):
-        return IV.groupby("pgm")[col].rank(pct=True, ascending=not lower_better).fillna(0.5)
-
-    trad = {c_: pct_feature(c_, c_ in LOWER_BETTER) for c_ in LOWER_BETTER + HIGHER_BETTER if c_ in IV}
-    if "ngs_athleticism_score" in IV:
-        trad["ngs"] = pct_feature("ngs_athleticism_score")
-    trad["weight"] = IV.groupby("pgm").combine_weight.transform(zs).fillna(0)
-    trad["height"] = IV.groupby("pgm").combine_height.transform(zs).fillna(0)
-    X_trad = pd.DataFrame(trad)
-    X_pick = pd.DataFrame({"log_pick": np.log(IV.draft_overall_pick.fillna(260))})
-    X_juice = pd.DataFrame({"juice": (IV.juice_final - 100) / 10})
-    X_jf = pd.DataFrame({"juice": (IV.nfl_id.map(JF_MAP).fillna(100) - 100) / 10})
-    models = {"pick": X_pick, "trad": X_trad, "trad+pick": X_trad.join(X_pick),
-              "juice": X_juice, "trad+pick+juice": X_trad.join(X_pick).join(X_juice),
-              "juice_frozen": X_jf, "trad+pick+juice_frozen": X_trad.join(X_pick).join(X_jf)}
-    yv, cls_ = IV.game_juice.values, IV.draft_year.values
-
-    def out_of_class(Xm):
-        pred, base = np.full(len(IV), np.nan), np.full(len(IV), np.nan)
-        for c_ in np.unique(cls_):
-            tr, te = cls_ != c_, cls_ == c_
-            if tr.sum() < 20 or te.sum() == 0:
-                continue
-            m_ = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-1, 3, 20))).fit(Xm.values[tr], yv[tr])
-            pred[te], base[te] = m_.predict(Xm.values[te]), yv[tr].mean()
-        return pred, base
-
-    def r2(y_, p, b):
-        ok = ~np.isnan(p)
-        den = ((y_[ok] - b[ok]) ** 2).sum()
-        return 1 - ((y_[ok] - p[ok]) ** 2).sum() / den if den > 0 else np.nan
-
-    oof = {k: out_of_class(Xm) for k, Xm in models.items()}
-    R2 = {k: r2(yv, *v) for k, v in oof.items()}
-
-    def gain(full, seed):
-        r_, dg = np.random.default_rng(seed), []
-        for _ in range(2000):
-            i = r_.integers(0, len(yv), len(yv))
-            dg.append(r2(yv[i], oof[full][0][i], oof[full][1][i])
-                      - r2(yv[i], oof["trad+pick"][0][i], oof["trad+pick"][1][i]))
-        return (R2[full] - R2["trad+pick"], *np.nanpercentile(dg, [2.5, 97.5]))
-
-    MF = M[["nfl_id", "pgm", "draft_year", "game_juice", "g_above"]].assign(
-        juice_frozen=M.nfl_id.map(JF_MAP)).dropna(subset=["juice_frozen"])
-    by_cls = {int(y): safe_spearman(d.juice_frozen, d.game_juice)
-              for y, d in MF.groupby("draft_year") if len(d) >= 15}
-    f_r, f_lo, f_hi = pooled_fisher(
-        [(safe_spearman(d.juice_frozen, d.game_juice), len(d)) for _, d in MF.groupby("draft_year") if len(d) >= 15])
-    f_auc = auc_ci(MF.g_above, MF.groupby("pgm").juice_frozen.rank(pct=True)) if len(MF) else (np.nan,) * 3
-    return {"R2": R2, "gain": gain("trad+pick+juice", 5), "gain_frozen": gain("trad+pick+juice_frozen", 6),
-            "frozen_by_class": by_cls, "frozen_r": (f_r, f_lo, f_hi), "frozen_auc": f_auc, "n_frozen": len(MF)}
-
-
-def evaluate_pool(pool):
-    R = {"pool": pool}
-    M = merged_for(pool)
-    R["M"] = M
-    print(f"  Pool '{pool}': {len(M)} players with both scores")
-
-    rows = []
-    for grp, d in list(M.groupby("pgm")) + [("ALL", M)]:
-        if len(d) < 10:
-            continue
-        r = safe_spearman(d.juice_final, d.game_juice)
-        lo, hi = fisher_ci(r, len(d))
-        rows.append({"player_pool": pool, "position_group": grp, "n_players": len(d),
-                     "spearman": r, "ci95_low": lo, "ci95_high": hi})
-    R["stick"] = pd.DataFrame(rows)
-    R["class"] = pd.DataFrame([{"player_pool": pool, "draft_year": int(y), "n_players": len(d),
-                                "spearman": safe_spearman(d.juice_final, d.game_juice)}
-                               for y, d in M.groupby("draft_year") if len(d) >= 15])
-    R["rookie"] = rookie_corr(pool)
-
-    g_ = M.juice_final
-    answers = [
-        risk_answer("Combine < 100 -> below average in games", g_ < BELOW_AVG, M.g_below),
-        risk_answer("Combine < 90 -> below average in games", g_ < LOW_JUICE, M.g_below),
-        risk_answer("Combine >= 110 -> above average in games", g_ >= ELITE, M.g_above),
-        risk_answer("Combine >= 110 -> elite (110+) in games", g_ >= ELITE, M.g_elite),
-        risk_answer("Combine >= 100 -> above average in games", g_ >= BELOW_AVG, M.g_above),
-    ]
-    R["answers"] = pd.DataFrame(answers).assign(player_pool=pool)
-    R["bands"] = pd.DataFrame({
-        "player_pool": pool, "band": BAND_LABELS,
-        "n": [int((M.c_band == b).sum()) for b in BAND_LABELS],
-        "pct_below_avg": [100 * M.loc[M.c_band == b, "g_below"].mean() for b in BAND_LABELS],
-        "pct_above_avg": [100 * M.loc[M.c_band == b, "g_above"].mean() for b in BAND_LABELS],
-        "pct_elite": [100 * M.loc[M.c_band == b, "g_elite"].mean() for b in BAND_LABELS],
-        "mean_game_juice": [M.loc[M.c_band == b, "game_juice"].mean() for b in BAND_LABELS],
-    })
-    a1, a2 = auc_ci(M.g_above, M.c_p), auc_ci(M.g_above, M.juice_final)
-    R["auc"] = pd.DataFrame([
-        {"player_pool": pool, "score": "percentile within position", "auc": a1[0], "ci95_low": a1[1], "ci95_high": a1[2]},
-        {"player_pool": pool, "score": "raw Combine Juice+", "auc": a2[0], "ci95_low": a2[1], "ci95_high": a2[2]}])
-
-    cmat = np.full((3, 3), np.nan)
-    for i, cc in enumerate(["T_plus", "A_plus", "E_plus"]):
-        for j, gc in enumerate(["g_top_plus", "g_agil_plus", "g_expl_plus"]):
-            d = M[[cc, gc]].dropna()
-            if len(d) >= 15:
-                cmat[i, j] = safe_spearman(d[cc], d[gc])
-    R["cmat"] = cmat
-    R["h2h"] = head_to_head(M)
-    R.update(incremental_and_frozen(M))
-    return R
-
-
-RES = {pool: evaluate_pool(pool) for pool in POOLS}
-
-# --- Table 1 and Combine Juice+ by round (pool independent) ---------------------------
-ROUND_MEANS = None
-if "draft_round" in FINAL.columns:
-    ROUND_MEANS = FINAL.groupby(
-        pd.cut(FINAL.draft_round.fillna(8), [0, 1, 2, 3, 5, 7, 8],
-               labels=["R1", "R2", "R3", "R4-5", "R6-7", "No pick"]), observed=False).juice_final.mean()
-board = FINAL[((FINAL.draft_overall_pick >= LOW_PICK) | FINAL.draft_overall_pick.isna())
-              & (FINAL.juice_final >= HIGH_JUICE)].copy()
-for pool in POOLS:
-    board = board.merge(GAME[pool][["nfl_id", "game_juice"]].rename(
-        columns={"game_juice": f"game_juice_{pool}"}), on="nfl_id", how="left")
-board = board.sort_values("juice_final", ascending=False)
-TABLE1 = pd.DataFrame({
-    "Player": board.display_name, "Pos": board.nfl_position, "Class": board.draft_year.astype(int),
-    "Pick": board.draft_overall_pick.map(lambda p: "none recorded" if pd.isna(p) else f"{int(p)}"),
-    "Combine Juice+": board.juice_final.round(1), "Top-end (T+)": board["T_plus"].round(1),
-    **{f"Game Juice+ ({p})": board[f"game_juice_{p}"].map(
-        lambda v: "too few snaps" if pd.isna(v) else f"{v:.1f}") for p in POOLS}})
 
 # ---------------------------------------------------------------------
-# Save tables
+hdr("1. WHO IS COVERED")
 # ---------------------------------------------------------------------
-
-reliability_df = pd.DataFrame([{
-    "combine_d15": RELI["d15"], "combine_v1": RELI["v1"], "combine_fly10": RELI["fly10"],
-    "game_top_full": GREL["top"], "game_expl_full": GREL["expl"], "game_agil_full": GREL["agil"],
-    "game_top_single_play": GREL1["top"], "game_expl_single_play": GREL1["expl"],
-    "game_agil_single_play": GREL1["agil"], "agility_included": GATE_G,
-    **{f"C_weight_{k}": v for k, v in C_WEIGHTS.items()},
-}])
-save(reliability_df, "reliabilities.csv")
-for pool in POOLS:
-    save(GAME[pool].drop(columns=["raw"], errors="ignore").assign(player_pool=pool),
-         f"game_juice_scores_{pool}.csv")
-player_table = FINAL[["nfl_id", "display_name", "nfl_position", "pgm", "draft_year",
-                      "juice_final", "E_plus", "T_plus", "A_plus", "juice_tracked_only",
-                      "E_trk_plus", "T_trk_plus", "A_trk_plus"]]
-for pool in POOLS:
-    player_table = player_table.merge(
-        GAME[pool][["nfl_id", "game_juice"]].rename(columns={"game_juice": f"game_juice_{pool}"}),
-        on="nfl_id", how="left")
-save(player_table, "juice_player_table.csv")
-save(pd.concat([RES[p]["stick"] for p in POOLS]), "combine_to_game_comparison.csv")
-save(pd.concat([RES[p]["class"] for p in POOLS]), "class_stability.csv")
-save(pd.DataFrame([{"player_pool": p, "pooled_spearman": RES[p]["rookie"][0],
-                    "n_players": RES[p]["rookie"][1]} for p in POOLS]), "rookie_season_only.csv")
-save(persist_df, "season_persistence.csv")
-save(pd.concat([RES[p]["answers"] for p in POOLS]), "risk_ratios.csv")
-save(pd.concat([RES[p]["bands"] for p in POOLS]), "band_outcomes.csv")
-save(pd.concat([RES[p]["auc"] for p in POOLS]), "auc.csv")
-save(pd.concat([pd.DataFrame(RES[p]["cmat"], index=["T", "A", "E"],
-                             columns=["game_top", "game_agility", "game_explosiveness"])
-                .reset_index().rename(columns={"index": "combine_piece"}).assign(player_pool=p)
-                for p in POOLS]), "component_matrix.csv")
-h2h_parts = []
-for p in POOLS:
-    h = RES[p]["h2h"]
-    if h:
-        save(h["ngs_tab"].reset_index().rename(columns={"index": "score"}).assign(player_pool=p),
-             f"head_to_head_{p}.csv")
-        if len(h["top_tab"]):
-            save(h["top_tab"].reset_index().rename(columns={"index": "score"}).assign(player_pool=p),
-                 f"top_end_piece_{p}.csv")
-inc_rows = []
-for p in POOLS:
-    for k, v in RES[p]["R2"].items():
-        inc_rows.append({"player_pool": p, "model": k, "out_of_class_r2": v})
-    inc_rows.append({"player_pool": p, "model": "GAIN trad+pick+juice over trad+pick",
-                     "out_of_class_r2": RES[p]["gain"][0], "ci95_low": RES[p]["gain"][1],
-                     "ci95_high": RES[p]["gain"][2]})
-    inc_rows.append({"player_pool": p, "model": "GAIN trad+pick+juice_frozen over trad+pick",
-                     "out_of_class_r2": RES[p]["gain_frozen"][0], "ci95_low": RES[p]["gain_frozen"][1],
-                     "ci95_high": RES[p]["gain_frozen"][2]})
-save(pd.DataFrame(inc_rows), "incremental_r2.csv")
-save(pd.DataFrame([{"player_pool": p, "n": RES[p]["n_frozen"], "pooled_spearman": RES[p]["frozen_r"][0],
-                    "ci95_low": RES[p]["frozen_r"][1], "ci95_high": RES[p]["frozen_r"][2],
-                    "auc": RES[p]["frozen_auc"][0], "auc_lo": RES[p]["frozen_auc"][1],
-                    "auc_hi": RES[p]["frozen_auc"][2]} for p in POOLS]), "held_out_formula.csv")
-save(TABLE1, "draft_board_table1.csv")
-if ROUND_MEANS is not None:
-    save(ROUND_MEANS.rename("mean_combine_juice").reset_index(), "combine_juice_by_round.csv")
+print(f"Every player with Combine tracking ends in one row below. Game Juice+ needs {MIN_GAME_PLAYS}+ usable plays.")
+show(ACCOUNT.set_index("group"), 1)
+cov = (D.groupby("pgm").nfl_id.nunique().to_frame("tracked")
+        .join(GAME.groupby("pgm").nfl_id.nunique().rename("game_scored"))
+        .join(M.groupby("pgm").nfl_id.nunique().rename("scored_both"))
+        .join(V.groupby("pgm").nfl_id.nunique().rename("have_all_scores")))
+print("\nBy position group:")
+show(cov.fillna(0).astype(int), 0)
+print(f"\nPlayers with both Combine and Game Juice+: {len(M)}. "
+      f"Players who also have NGS, RAS-style and a 40 (used for head-to-head): {len(V)}.")
+print("Usable plays among scored players (median / min):", f"{GAME.npl.median():.0f} / {GAME.npl.min():.0f}")
 
 # ---------------------------------------------------------------------
-# Report
+hdr("2. IS THE SCORE FREE OF BODY SIZE?")
 # ---------------------------------------------------------------------
+print("Correlation of each score with body weight, within position group (pooled).")
+print("0 means size tells you nothing about the score. Far from 0 means a big player starts with a head start.")
+size_rows = []
+for name, c in SCORES + [("Game Juice+ (the target)", "game_juice")]:
+    d = M.dropna(subset=[c, "combine_weight"])
+    parts = [(safe_spearman(g[c], g.combine_weight), len(g)) for _, g in d.groupby("pgm") if len(g) >= 15]
+    r_, lo, hi = pooled_fisher(parts)
+    size_rows.append({"score": name, "corr_with_weight": r_, "ci_low": lo, "ci_high": hi, "n": len(d)})
+SIZE = pd.DataFrame(size_rows).set_index("score")
+show(SIZE)
+
+print("\nDoes the Combine-to-game link hold for light, middle and heavy players of the SAME position?")
+print("Players are split into weight thirds inside their own position group. Cells are correlations with Game Juice+.")
+V["size_third"] = ""
+for _, d_ in V.groupby("pgm"):
+    V.loc[d_.index, "size_third"] = pd.qcut(d_.combine_weight.rank(method="first"), 3,
+                                            labels=["light", "middle", "heavy"]).astype(str)
+third_rows = {}
+for name, c in SCORES:
+    row = {t: pr(g["X_" + c], g.X_game_juice) for t, g in V.groupby("size_third")}
+    row["spread (max-min)"] = max(row.values()) - min(row.values())
+    third_rows[name] = row
+THIRDS = pd.DataFrame(third_rows).T[["light", "middle", "heavy", "spread (max-min)"]]
+show(THIRDS)
+print("n per third:", V.size_third.value_counts().to_dict())
+
+# ---------------------------------------------------------------------
+hdr("3. DOES COMBINE ATHLETICISM CARRY OVER TO GAME ATHLETICISM?")
+# ---------------------------------------------------------------------
+print("Rank correlation between a player's Combine score and his Game Juice+, same 'within his position group' scale.")
+carry = []
+for name, c in SCORES:
+    x, y = V["X_" + c].to_numpy(), V.X_game_juice.to_numpy()
+    b = boot(x, y)
+    carry.append({"score": name, "corr_with_game_juice": pr(x, y), "ci_low": np.percentile(b, 2.5),
+                  "ci_high": np.percentile(b, 97.5), "n": len(V)})
+CARRY = pd.DataFrame(carry).set_index("score")
+show(CARRY, 3)
+
+print("\nJuice+ on EVERYONE scored (no need for NGS or a 40), by position group:")
+rows_g = []
+for grp, d in list(M.groupby("pgm")) + [("ALL", M)]:
+    if len(d) < 10:
+        continue
+    r_ = safe_spearman(d.juice_final, d.game_juice) if grp != "ALL" else pr(d.X_juice_final, d.X_game_juice)
+    lo, hi = fisher_ci(r_, len(d))
+    rows_g.append({"group": grp, "n": len(d), "corr": r_, "ci_low": lo, "ci_high": hi})
+BYGROUP = pd.DataFrame(rows_g).set_index("group")
+show(BYGROUP, 3)
+
+print("\nSame, by how much game data backs the score (thin scores are pulled toward 100 by design):")
+M["plays_bucket"] = pd.cut(M.npl, [0, 49, 199, 100000], labels=["1-49 plays", "50-199 plays", "200+ plays"])
+bk = []
+for b_, d in M.groupby("plays_bucket", observed=True):
+    r_ = pr(d.X_juice_final, d.X_game_juice) if len(d) > 5 else np.nan
+    bk.append({"plays": b_, "n": len(d), "corr": r_})
+show(pd.DataFrame(bk).set_index("plays"), 3)
+
+print("\nWhat a Combine Juice+ band says about the game (share above average, mean Game Juice+):")
+M["band"] = pd.cut(M.juice_final, [-np.inf, LOW_JUICE, BELOW_AVG, ELITE, np.inf],
+                   labels=["<90", "90-100", "100-110", "110+"], right=False)
+BAND = M.groupby("band", observed=True).agg(n=("nfl_id", "size"), pct_above_avg=("g_above", lambda s: 100 * s.mean()),
+                                            mean_game_juice=("game_juice", "mean"))
+show(BAND, 1)
+
+print("\nSeason-to-season repeatability of Game Juice+ (the ceiling for any Combine link):")
+show(persist_df.set_index("season_pair") if len(persist_df) else pd.DataFrame())
+
+# ---------------------------------------------------------------------
+hdr("4. JUICE+ VS NGS, RAS-STYLE AND THE 40 (same players, paired bootstrap)")
+# ---------------------------------------------------------------------
+print("Edge = Juice+ correlation minus the other score's correlation, with a 95% interval.")
+print("'Clear' means the interval stays above 0. Variants marked size-adjusted get the same size and class correction Juice+ gets.")
+xj = V.X_juice_final.to_numpy()
+yg = V.X_game_juice.to_numpy()
+r_b = np.random.default_rng(9)
+idx = r_b.integers(0, len(V), (BOOT, len(V)))
+edge_rows = []
+for name, c in SCORES[1:]:
+    if c == "juice_heldout":
+        continue
+    xo = V["X_" + c].to_numpy()
+    d_all = np.array([pr(xj[i], yg[i]) - pr(xo[i], yg[i]) for i in idx])
+    est = pr(xj, yg) - pr(xo, yg)
+    lo, hi = np.percentile(d_all, [2.5, 97.5])
+    verdict = "clear edge" if lo > 0 else ("behind" if hi < 0 else "no clear difference")
+    edge_rows.append({"Juice+ minus": name, "edge": est, "ci_low": lo, "ci_high": hi, "verdict": verdict})
+EDGES = pd.DataFrame(edge_rows).set_index("Juice+ minus")
+show(EDGES, 3)
+
+print("\nBy position group, same players (rank correlation with Game Juice+):")
+grp_rows = {}
+for grp, d in V.groupby("pgm"):
+    if len(d) >= 15:
+        grp_rows[f"{grp} (n={len(d)})"] = {n: safe_spearman(d[c], d.game_juice) for n, c in SCORES[:1] + SCORES[2:5]}
+show(pd.DataFrame(grp_rows).T)
+
+# ---------------------------------------------------------------------
+hdr("5. IS THIS JUST FITTING THE SAME PLAYERS TWICE?")
+# ---------------------------------------------------------------------
+print("The Combine formula (size model, reliabilities, agility gate) was tuned on these players.")
+print("The held-out version scores each draft class with a formula built WITHOUT that class.")
+MF = M.dropna(subset=["juice_heldout"])
+cls_parts = []
+for y_, d in MF.groupby("draft_year"):
+    if len(d) >= 15:
+        r_ = safe_spearman(d.juice_heldout, d.game_juice)
+        cls_parts.append((r_, len(d)))
+        print(f"  class {int(y_)}: corr {r_:+.2f} (n = {len(d)})")
+fr, flo, fhi = pooled_fisher(cls_parts)
+print(f"  pooled held-out: {fr:+.2f} [{flo:+.2f}, {fhi:+.2f}]   vs in-sample Juice+ on the same group: "
+      f"{pooled_fisher([(safe_spearman(d.juice_final, d.game_juice), len(d)) for _, d in MF.groupby('draft_year') if len(d) >= 15])[0]:+.2f}")
+
+# Position-blend weight search. Off by default: blend weights did not hold out of sample (audit, 'Stop doing').
+BLEND_TAB = BLEND_EDGES = W_TAB = None
+if RUN_BLEND_SEARCH:
+    # ---------------------------------------------------------------------
+    hdr("6. POSITION-SPECIFIC BLEND (tracked data vs official stopwatch tests)")
+    # ---------------------------------------------------------------------
+    print("Each position group gets its own mix of the tracked pieces and the official tests (0 = stopwatch only, 1 = tracked only).")
+    print("The mix is chosen on two draft classes and scored on the third, so the result is out of sample.")
+    print("Only a player's tracked pieces gate who is scored, so every version below scores the same people.")
 
 
-def f2(x):
-    return f"{x:.2f}" if x is not None and np.isfinite(x) else "n/a"
+    def official_parts(z):
+        """The official tests that measure each trait, standardized and averaged."""
+        out = {}
+        for name in "ETA":
+            cols = [(col, sg) for col, sg in OFFICIAL[name].items() if col in z]
+            out[name] = (pd.concat([sg * z[col] for col, sg in cols], axis=1).mean(axis=1)
+                         if cols else pd.Series(np.nan, index=C.index))
+        return out
 
 
-print("\n================ FULL RUN RESULTS  ================")
-print("\nCoverage:")
-print(f"  Players with a Combine Juice+ score: {len(FINAL)}")
-for pool in POOLS:
-    print(f"  Pool '{pool}': {len(GAME[pool])} with game scores, {len(RES[pool]['M'])} with both")
-print("\nReliabilities:")
-print(reliability_df.T.to_string(header=False))
-print("\nGame Juice+ season-to-season persistence (ceiling for any Combine link):")
-print(persist_df.to_string(index=False) if len(persist_df) else "  not enough data")
-if ROUND_MEANS is not None:
-    print("\nCombine Juice+ by draft round:", ROUND_MEANS.round(1).to_dict())
+    def assemble(trk, off, w):
+        """w is the weight on the tracked piece. A scalar, or a Series by player."""
+        out = {}
+        for k in "ETA":
+            mix = w * trk[k] + (1 - w) * off[k]
+            out[k] = mix.where(off[k].notna(), trk[k]).where(trk[k].notna())
+        raw = pd.concat(list(out.values()), axis=1).mean(axis=1)
+        return raw.where(out["E"].notna() & out["T"].notna())
 
-for pool in POOLS:
-    R = RES[pool]
-    print(f"\n---------------- Pool '{pool}' (n = {len(R['M'])}) ----------------")
-    print("\nCombine vs Game Juice+ (Spearman):")
-    print(R["stick"].round(3).to_string(index=False))
-    print("\nBy draft class:")
-    print(R["class"].round(3).to_string(index=False))
-    print(f"\nRookie season only (pooled over classes): {f2(R['rookie'][0])} (n = {R['rookie'][1]})")
-    print("\nBand claims (Wilson 95% interval on the rate, bootstrap risk ratio vs all players):")
-    print(R["answers"].drop(columns="player_pool").round(2).to_string(index=False))
-    print("\nOutcomes by Combine band:")
-    print(R["bands"].drop(columns="player_pool").round(1).to_string(index=False))
-    print("\nAUC for above-average game movers (0.5 = coin flip):")
-    print(R["auc"].drop(columns="player_pool").round(3).to_string(index=False))
-    print("\nCombine piece (rows T, A, E) vs game piece (cols top, agility, explosiveness):")
-    print(pd.DataFrame(R["cmat"], index=["T", "A", "E"],
-                       columns=["game_top", "game_agility", "game_expl"]).round(2).to_string())
-    h = R["h2h"]
-    if h:
-        print(f"\nHead-to-head vs stopwatch scores (same {h['n']} players), rank correlation with Game Juice+:")
-        print(h["ngs_tab"].round(2).to_string())
-        if len(h["top_tab"]):
-            print("\nTop-end piece vs game top-end:")
-            print(h["top_tab"].round(2).to_string())
-        print("\nJuice+ edge (bootstrap 95% CI):",
-              {k: tuple(round(x, 2) for x in v) for k, v in h["edge"].items()})
-        print("Weight correlations:", {g: {k: round(v, 2) for k, v in d.items()}
-                                       for g, d in h["weight_r"].items()})
-        print("When the scores disagree (mean game percentile):",
-              {k: (n, round(m, 1) if np.isfinite(m) else m) for k, (n, m) in h["disagree"].items()})
-    else:
-        print("\nHead-to-head: NGS / stopwatch columns not available.")
-    print("\nOut-of-class R2:", {k: round(v, 3) for k, v in R["R2"].items()})
-    print("Gain of Juice+ over traditional + pick:", tuple(round(x, 3) for x in R["gain"]))
-    print(f"Held-out formula (n = {R['n_frozen']}): by class "
-          f"{ {k: round(v, 2) for k, v in R['frozen_by_class'].items()} }; pooled "
-          f"{f2(R['frozen_r'][0])} [{f2(R['frozen_r'][1])}, {f2(R['frozen_r'][2])}]; "
-          f"AUC {f2(R['frozen_auc'][0])} [{f2(R['frozen_auc'][1])}, {f2(R['frozen_auc'][2])}]")
-    print("Gain with held-out formula:", tuple(round(x, 3) for x in R["gain_frozen"]))
 
-print("\nTable 1. Late-round / undrafted players flagged by Combine Juice+ (110+):")
-print(TABLE1.to_string(index=False))
-print("\nThese are in-sample results except the held-out formula and out-of-class R2 blocks.")
+    def scale_within(raw, keys):
+        g = raw.groupby(keys)
+        return 100 + 10 * (raw - g.transform("mean")) / g.transform("std").replace(0, np.nan)
 
-print(f"\nAll output files saved to: {OUT.resolve()}")
+
+    W_GRID = [0.0, 0.25, 0.5, 0.75, 1.0]
+    Z_ALL = {col: adjust(CT, col) for col in TRACKED_COLS + OFFICIAL_COLS}
+    TRK_ALL = dict(zip("ETA", combine_pieces(Z_ALL, C, REL_E, REL_T, rbar, gate, blend=False)))
+    OFF_ALL = official_parts(Z_ALL)
+    RAW_W = {w: assemble(TRK_ALL, OFF_ALL, w) for w in W_GRID}
+    GJ = C.nfl_id.map(dict(zip(GAME.nfl_id, GAME.game_juice)))
+
+
+    def pick_w(train_mask):
+        """For each position group, the weight whose Combine score best matches Game Juice+ on the training players."""
+        chosen = {}
+        for g_ in sorted(C.pgm.unique()):
+            m = train_mask & (C.pgm == g_) & GJ.notna()
+            scored = []
+            for w in W_GRID:
+                mm = m & RAW_W[w].notna()
+                if mm.sum() >= 20:
+                    r_ = safe_spearman(RAW_W[w][mm], GJ[mm])
+                    if np.isfinite(r_):
+                        scored.append((r_, -abs(w - 0.5), w))   # ties go to the weight nearest 50/50
+            chosen[g_] = max(scored)[2] if scored else 0.5
+        return chosen
+
+
+    JB = pd.Series(np.nan, index=C.index)
+    w_rows = []
+    for cls in sorted(C.draft_year.dropna().unique()):
+        train = C.draft_year != cls
+        wmap = pick_w(train)
+        w_rows.append({"held-out class": int(cls), **wmap})
+        ids_tr = set(C.nfl_id[train])
+        RE_f, RT_f, _ = retest_reliability(w2[w2.nfl_id.isin(ids_tr)])
+        gate_f, rbar_f = gate_fn(ids_tr)
+        z = {col: adjust_frozen(CT, col, train) for col in TRACKED_COLS + OFFICIAL_COLS}
+        trk = dict(zip("ETA", combine_pieces(z, C, RE_f, RT_f, rbar_f, gate_f, blend=False)))
+        raw = assemble(trk, official_parts(z), C.pgm.map(wmap).fillna(0.5))
+        te = ~train & raw.notna()
+        JB[te] = scale_within(raw[te], C.pgm[te])
+    W_TAB = pd.DataFrame(w_rows).set_index("held-out class")
+    print("\nWeight on the tracked pieces chosen for each fold (rows = class that was held out):")
+    show(W_TAB)
+    W_FINAL = pick_w(pd.Series(True, index=C.index))
+    print("Weights chosen using all three classes (for scoring players going forward):",
+          {k: v for k, v in W_FINAL.items() if (C.pgm == k).sum() >= 15})
+    JBF = scale_within(assemble(TRK_ALL, OFF_ALL, C.pgm.map(W_FINAL).fillna(0.5)), C.pgm)
+
+    M["juice_blend"] = M.nfl_id.map(dict(zip(C.nfl_id, JB)))
+    M["juice_blend_final"] = M.nfl_id.map(dict(zip(C.nfl_id, JBF)))
+    M["X_juice_blend"] = M.groupby("pgm").juice_blend.rank(pct=True)
+    VB = M.dropna(subset=[c for _, c in SCORES] + ["juice_blend"]).copy()
+    BL_SCORES = [("Juice+ blended (held-out)", "juice_blend"), ("Juice+ main version (held-out)", "juice_heldout"),
+                 ("NGS athleticism", "ngs_athleticism_score"), ("RAS-style", "ras_style"), ("Official 40", "forty_neg")]
+    yb = VB.X_game_juice.to_numpy()
+    rows_b = []
+    for name, c in BL_SCORES:
+        x = VB["X_" + c].to_numpy()
+        b = boot(x, yb)
+        rows_b.append({"score": name, "corr_with_game_juice": pr(x, yb), "ci_low": np.percentile(b, 2.5),
+                       "ci_high": np.percentile(b, 97.5), "n": len(VB)})
+    BLEND_TAB = pd.DataFrame(rows_b).set_index("score")
+    print(f"\nOut-of-sample carry-over, same {len(VB)} players:")
+    show(BLEND_TAB, 3)
+
+    xb = VB.X_juice_blend.to_numpy()
+    idx_b = np.random.default_rng(21).integers(0, len(VB), (BOOT, len(VB)))
+    be_rows = []
+    for name, c in BL_SCORES[1:]:
+        xo = VB["X_" + c].to_numpy()
+        d_ = np.array([pr(xb[i], yb[i]) - pr(xo[i], yb[i]) for i in idx_b])
+        lo, hi = np.percentile(d_, [2.5, 97.5])
+        be_rows.append({"blended minus": name, "edge": pr(xb, yb) - pr(xo, yb), "ci_low": lo, "ci_high": hi,
+                        "verdict": "clear edge" if lo > 0 else ("behind" if hi < 0 else "no clear difference")})
+    BLEND_EDGES = pd.DataFrame(be_rows).set_index("blended minus")
+    print("\nBlended Juice+ edge over each, paired bootstrap:")
+    show(BLEND_EDGES, 3)
+
+    print("\nBy position group (same players):")
+    gb_rows = {}
+    for grp, d in VB.groupby("pgm"):
+        if len(d) >= 15:
+            gb_rows[f"{grp} (n={len(d)})"] = {n: safe_spearman(d[c], d.game_juice) for n, c in BL_SCORES}
+    show(pd.DataFrame(gb_rows).T)
+    MB = M.dropna(subset=["juice_blend"])
+    print(f"\nBlended Juice+ on everyone scored (n = {len(MB)}): {pr(MB.X_juice_blend, MB.X_game_juice):+.3f}; "
+          f"correlation with weight {safe_spearman(MB.juice_blend, MB.combine_weight):+.2f}")
+    print("Note: the size model and retest reliabilities for the weight search use all classes; "
+          "only the weights themselves are chosen without the held-out class's game scores.")
+
+
+# ---------------------------------------------------------------------
+hdr("6b. VERSION COMPARISON (size link vs carry-over, side by side)")
+# ---------------------------------------------------------------------
+print(f"Main version for this run: {JUICE_VERSION}. Set JUICE_VERSION=tracked_only or blend_50_50 to change it.")
+print("Size link = correlation with body weight inside each position group, pooled.")
+print("These rows are in-sample except the position blend. Same players in every row.")
+VERS = [("Tracked only", "juice_tracked_only"), ("50/50 with stopwatch tests", "juice_5050"),
+        ("Unadjusted for size", "juice_unadjusted"),
+        ("Official 40 (for reference)", "forty_neg"), ("NGS athleticism (for reference)", "ngs_athleticism_score")]
+if RUN_BLEND_SEARCH:
+    VERS.insert(2, ("Position blend (held-out)", "juice_blend"))
+for _, c in VERS:
+    M["X_" + c] = M.groupby("pgm")[c].rank(pct=True)
+VV = M.dropna(subset=[c for _, c in VERS]).copy()
+ver_rows = []
+for name, c in VERS:
+    parts = [(safe_spearman(g[c], g.combine_weight), len(g)) for _, g in VV.groupby("pgm") if len(g) >= 15]
+    sr, slo, shi = pooled_fisher(parts)
+    x, y = VV["X_" + c].to_numpy(), VV.X_game_juice.to_numpy()
+    b = boot(x, y)
+    thirds = []
+    for _, g in VV.assign(t=VV.groupby("pgm").combine_weight.transform(lambda q: q.rank(method="first") // (len(q) / 3 + 1e-9))).groupby("t"):
+        thirds.append(pr(g["X_" + c], g.X_game_juice))
+    ver_rows.append({"version": name, "weight_link": sr, "wl_low": slo, "wl_high": shi,
+                     "carry_over": pr(x, y), "co_low": np.percentile(b, 2.5), "co_high": np.percentile(b, 97.5),
+                     "spread_across_sizes": max(thirds) - min(thirds), "n": len(VV)})
+VERSIONS = pd.DataFrame(ver_rows).set_index("version")
+show(VERSIONS, 3)
+
+# ---------------------------------------------------------------------
+hdr("7. PLAIN-ENGLISH READ")
+# ---------------------------------------------------------------------
+j = CARRY.loc["Juice+"]
+print(f"- Carry-over: a player's Combine Juice+ and Game Juice+ have a rank correlation of {j.corr_with_game_juice:+.2f} "
+      f"[{j.ci_low:+.2f}, {j.ci_high:+.2f}] on {int(j.n)} players with every score; "
+      f"{BYGROUP.loc['ALL', 'corr']:+.2f} on all {int(BYGROUP.loc['ALL', 'n'])} scored players.")
+sz = SIZE.loc["Juice+", "corr_with_weight"]
+print(f"- Size: Juice+ vs weight is {sz:+.2f}; NGS {SIZE.loc['NGS athleticism', 'corr_with_weight']:+.2f}, "
+      f"RAS-style {SIZE.loc['RAS-style', 'corr_with_weight']:+.2f}, 40 {SIZE.loc['Official 40', 'corr_with_weight']:+.2f}.")
+sp = THIRDS["spread (max-min)"]
+print(f"- Across light/middle/heavy players, the link moves by {sp['Juice+']:.2f} for Juice+, "
+      f"{sp['NGS athleticism']:.2f} for NGS, {sp['RAS-style']:.2f} for RAS-style.")
+for name, r_ in EDGES.iterrows():
+    print(f"- vs {name}: {r_.verdict} ({r_.edge:+.3f}, 95% [{r_.ci_low:+.3f}, {r_.ci_high:+.3f}]).")
+if RUN_BLEND_SEARCH:
+    bt = BLEND_TAB.loc["Juice+ blended (held-out)"]
+    print(f"- Position-specific blend (out of sample): {bt.corr_with_game_juice:+.2f} [{bt.ci_low:+.2f}, {bt.ci_high:+.2f}] "
+          f"vs {BLEND_TAB.loc['Juice+ main version (held-out)', 'corr_with_game_juice']:+.2f} for the main version.")
+    for name, r_ in BLEND_EDGES.iterrows():
+        print(f"- blended vs {name}: {r_.verdict} ({r_.edge:+.3f}, 95% [{r_.ci_low:+.3f}, {r_.ci_high:+.3f}]).")
+print("- These head-to-head edges are not the headline. juice_transfer.py reports what each tracked piece adds"
+      " beyond the stopwatch, by position (audit item 3).")
+print("- Caveat: Game Juice+ is size-adjusted by construction, so scores that are not size-adjusted start at a disadvantage."
+      " The size-adjusted rows above show how much of any edge is just that correction.")
+
+# ---------------------------------------------------------------------
+# Save
+# ---------------------------------------------------------------------
+save(M.drop(columns=["plays_bucket", "band"]), "juice_player_table.csv")
+save(ACCOUNT, "roster_accounting.csv")
+save(CARRY.reset_index(), "carry_over.csv")
+save(EDGES.reset_index(), "edges_vs_other_scores.csv")
+save(THIRDS.reset_index(), "by_size_third.csv")
+save(SIZE.reset_index(), "size_dependence.csv")
+save(BYGROUP.reset_index(), "by_position_group.csv")
+save(VERSIONS.reset_index(), "version_comparison.csv")
+if RUN_BLEND_SEARCH:
+    save(W_TAB.reset_index(), "blend_weights.csv")
+    save(BLEND_TAB.reset_index(), "blend_carry_over.csv")
+    save(BLEND_EDGES.reset_index(), "blend_edges.csv")
+else:
+    # Old blend tables came from earlier runs. Remove them so no stale number is read as current.
+    for _stale in ("blend_weights.csv", "blend_carry_over.csv", "blend_edges.csv"):
+        (OUT / _stale).unlink(missing_ok=True)
+
+# Combine side in full (tracked features, pieces, official tests) for juice_physics.py and juice_transfer.py.
+save(with_tests(FINAL).drop(columns=[c_ for c_ in ["raw"] if c_ in FINAL]), "combine_juice_scores.csv")
+save(BURST_VALIDITY, "burst_validity.csv")
+save(G_ALL[["nfl_id", "npl", "nb", "n_alat"]], "game_play_counts.csv")
+
+# Run manifest: settings and headline counts for this run.
+MANIFEST = {"run_id": RUN_ID, "git": _git, "utc": _stamp, "settings": SETTINGS,
+            "counts": {"combine_tracked": int(n_tracked), "combine_scored": int(len(FINAL)),
+                       "game_any_usable": int(len(G_ALL)), "game_scored": int(len(GAME)), "both": int(len(M)),
+                       "head_to_head": int(len(V))},
+            "reliability": {"combine_retest": RELI, "game_split_half": GREL},
+            "game_weights": C_WEIGHTS}
+(OUT / "run_manifest.json").write_text(json.dumps(MANIFEST, indent=2, default=float))
+print(f"\nAll tables saved to: {OUT.resolve()}  (run {RUN_ID})")

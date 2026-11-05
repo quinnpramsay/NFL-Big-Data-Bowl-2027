@@ -15,3 +15,22 @@ Uses kaggle api call to import all the data from kaggle. must pip install --upgr
 # Notebooks
 juice+ = thomas current version
 juice_plus = quinn current version
+
+# Pipeline (current)
+
+The one pipeline is in `programs/`. Run from the repo root, in this order:
+
+```
+python3 programs/juice.py            # Combine Juice+ and Game Juice+ (about 1 min with the cached play table)
+python3 programs/juice_physics.py    # acceleration-speed profiles, Combine and games; preseason counts (about 15 min first time, cached after)
+python3 programs/juice_transfer.py   # the chain, what tracking adds, mixed models, snap takeover, tiers, primary tests
+python3 programs/juice_figures.py    # six figures for the writeup
+```
+
+Every table in `juice_nb_output/` carries the run ID that `juice.py` wrote to `run_manifest.json`. The later scripts
+refuse to mix runs, so every number in the writeup traces to one run. Main read: `juice_nb_output/transfer_report.txt`.
+Primary tests are listed in `programs/PRIMARY_TESTS.md`; everything else is exploratory.
+
+Superseded (kept for history, do not quote numbers from them): `juice.py` and `outcome.py` at the repo root,
+`programs/outcome.py` (replaced by `juice_transfer.py`), `Juice+.ipynb` (older logic, see audit item 7), and the
+`juice_full_output/` and `juice_experiment_output/` folders.

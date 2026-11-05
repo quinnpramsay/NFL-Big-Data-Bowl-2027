@@ -1,3 +1,5 @@
+# SUPERSEDED by juice_transfer.py (November 2026). Reads outputs that juice.py no longer writes
+# (game_juice_scores_all.csv in juice_full_output). Kept for history only.
 import os
 import warnings
 from pathlib import Path
