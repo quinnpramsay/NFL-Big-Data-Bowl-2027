@@ -157,7 +157,7 @@ if ASP is not None:
         P[f"a0_{tag}"] = P.nfl_id.map(a.a0)
         P[f"v0_{tag}"] = P.nfl_id.map(a.v0)
 # Tracked-only pieces, Combine side. Names used in tables.
-PIECES = {"E": ("Burst (E, yard 2-10 split)", "E_trk_plus", "g_expl_plus"),
+PIECES = {"E": ("Burst (E, yard 2-10 split + accel)", "E_trk_plus", "g_expl_plus"),
           "T": ("Speed (T, fastest 10 yd)", "T_trk_plus", "g_top_plus"),
           "A": ("Agility (A, position drills)", "A_trk_plus", "g_agil_plus")}
 out(f"Run {RUN_ID}. Combine-scored players: {len(P)}; with Game Juice+ ({MIN_GAME_PLAYS}+ plays): "

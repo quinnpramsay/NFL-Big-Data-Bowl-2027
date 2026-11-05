@@ -1,13 +1,13 @@
 {
-  "run_id": "20261105T005112Z-69e030",
+  "run_id": "20261105T161250Z-641f77",
   "decision": {
-    "burst_vs_getoff": 0.16781005550291342,
+    "burst_vs_getoff": 0.14421668556502695,
     "ci": [
-      -0.08638641749118864,
-      0.4157012739390261
+      -0.0934946360992682,
+      0.38268448055219556
     ],
     "n": 68,
-    "after_pick": 0.13756518895921094,
+    "after_pick": 0.07575239345372979,
     "forty_vs_getoff": 0.36915655963448213,
     "lead_story": "WR and DB agility"
   },
@@ -17,11 +17,11 @@
     "game burst": 1
   },
   "smaller_checks": {
-    "tiers_inside_90_110": 0.017128620367486767,
-    "cubic_p": 0.8615289199144748,
-    "reached_field_corr": 0.22397410333416787,
+    "tiers_inside_90_110": 0.05222017801203322,
+    "cubic_p": 0.7750643144272475,
+    "reached_field_corr": 0.2211309307454242,
     "preseason": {
-      "run_id": "20261105T005112Z-69e030",
+      "run_id": "20261105T161250Z-641f77",
       "players_in_scope": 505,
       "no_regular_season_play": 108,
       "no_regular_season_but_preseason": 96,
@@ -37,10 +37,10 @@
       }
     },
     "late_round": {
-      "hi_above": 7,
-      "hi_n": 8,
-      "lo_above": 34,
-      "lo_n": 98
+      "hi_above": 4,
+      "hi_n": 7,
+      "lo_above": 37,
+      "lo_n": 99
     }
   }
 }

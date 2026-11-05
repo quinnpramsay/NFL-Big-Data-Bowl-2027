@@ -7,6 +7,12 @@ Position groups are the ones the competition covers: WR, TE, DB, OL, DL and EDGE
 Changes from the November 3 audit (juice_plus_improvement_plan.md):
   - Burst (E) is the time from yard 2 to yard 10 of the tracked 40 (t2_10). The old d15/v1 pair started the clock
     at the first frame at 1 yd/s, so one frame of error moved it by most of an SD.
+  - Nov 5 test pass: E now averages the yard 2-10 split with the mean acceleration over the same yards (the
+    acceleration measure repeats at 0.66 attempt to attempt, the split at 0.47). Game burst is measured the same clock-free way from the snap spot on standing-start
+    plays that reach 10 yards within 4 s. The old game burst (speed at 1.0 s, distance at 1.5 s after the snap) was
+    mostly reaction time: it tracked Combine burst at only +0.07 and the 40 at +0.17. The new one tracks Combine burst
+    at about +0.21, and Game Juice+ pieces agree far better (alpha: WR 0.50 -> 0.63, TE -0.11 -> 0.75).
+    Old behavior: BURST_METHOD=split GAME_BURST=snap.
   - Game Juice+ needs MIN_GAME_PLAYS usable plays (default 50). Players below the floor are reported, not scored.
   - Game Juice+ is the reliability-weighted average of its shrunk pieces on the 100 scale. It is no longer
     re-standardized, so a final score always sits inside the range of its own pieces.
@@ -15,7 +21,7 @@ Changes from the November 3 audit (juice_plus_improvement_plan.md):
   - The position-blend weight search is off by default (RUN_BLEND_SEARCH=1 to turn it on).
 
 Run in Colab or locally. Needs the competition files (Kaggle login) or JUICE_DATA_DIR pointing at them.
-Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_figures.py
+Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_predictive.py -> juice_figures.py
 """
 
 # ## 0. Setup and settings
@@ -68,9 +74,17 @@ GATE_ALPHA, MIN_PLAYERS_DRILL, MIN_OVERLAP = 0.5, 20, 15
 RELIABILITY_MIN = (200, 50)                      # reliabilities are estimated on well-sampled players only
 SEASON_MIN = (100, 30)                           # persistence check, one season at a time
 MIN_GAME_PLAYS = int(os.getenv("MIN_GAME_PLAYS", "50"))   # usable open plays needed for a Game Juice+ score
-# Burst measure for the Combine E piece. "split" = time from yard 2 to yard 10 (default). "legacy" = old d15/v1.
-BURST_METHOD = os.getenv("BURST_METHOD", "split")
+# Burst measure for the Combine E piece. "split_macc" (default) = average of the yard 2-10 split time and the mean
+# acceleration over yards 2-10 (retest 0.72 vs 0.56 for the split alone). "split" = split only. "legacy" = old d15/v1.
+BURST_METHOD = os.getenv("BURST_METHOD", "split_macc")
 SPLIT_FROM, SPLIT_TO = 2.0, 10.0
+# Game burst. "clockfree" (default) = the same yard 2-10 split and mean acceleration, measured from the snap position on
+# standing-start plays that reach 10 yards within 4 s. No snap clock, so reaction time is not mixed in, matching the
+# Combine 40. "clockfree_split" = the split time only. "snap" = old speed at 1.0 s and distance at 1.5 s after the
+# snap (mostly reaction / get-off).
+GAME_BURST = os.getenv("GAME_BURST", "clockfree")
+BURST_WINDOW = 40                                # frames after the snap searched for the 2- and 10-yard marks
+EXPL_PARTS = {"clockfree": ["gsplit_c", "gmacc_c"], "clockfree_split": ["gsplit_c"]}.get(GAME_BURST, [])
 # Top-end measure for the Combine T piece. "fly10" = fastest 10 yards (default). "peak" = peak smoothed speed.
 TOP_METHOD = os.getenv("TOP_METHOD", "fly10")
 RUN_BLEND_SEARCH = os.getenv("RUN_BLEND_SEARCH", "0") == "1"
@@ -87,7 +101,7 @@ PGM = {"T": "OL", "G": "OL", "C": "OL", "DT": "DL", "NT": "DL", "DE": "EDGE", "O
 
 # Run ID: one per run, written into every output table, so every number in the writeup can be traced to one run.
 SETTINGS = {k: v for k, v in dict(
-    JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, TOP_METHOD=TOP_METHOD,
+    JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, GAME_BURST=GAME_BURST, TOP_METHOD=TOP_METHOD,
     DROP_BLOWOUTS=DROP_BLOWOUTS, GARBAGE_WP=GARBAGE_WP, MIN_PLAY_SECONDS=MIN_PLAY_SECONDS,
     MIN_FRAMES_OPEN=MIN_FRAMES_OPEN, GATE_ALPHA=GATE_ALPHA, RUN_BLEND_SEARCH=RUN_BLEND_SEARCH).items()}
 try:
@@ -366,10 +380,14 @@ def feats40(a):
     acc = np.gradient(smooth, t_all)
     rising = np.arange(len(smooth)) <= int(np.argmax(smooth))
     a0, v0 = asp_fit(np.where(rising, smooth, np.nan), np.where(rising, acc, np.nan))
+    # Mean acceleration from yard 2 to yard 10: speed gained over the split, divided by its time. Clock-free.
+    v_from, v_to = np.interp(SPLIT_FROM, prog_all, smooth), np.interp(SPLIT_TO, prog_all, smooth)
+    macc = (v_to - v_from) / t_split if t_split > 0 else np.nan
     return pd.Series({
         "d15": np.interp(1.5, elapsed, progress),
         "v1": np.interp(1.0, elapsed, pd.Series(s).rolling(3, center=True, min_periods=1).mean().to_numpy()),
         "split": -t_split,             # faster = higher, so every piece reads "higher is better"
+        "macc": macc,
         "fly10": best if best > 0 else np.nan,
         "peak": float(smooth.max()),
         "a0_40": a0, "v0_40": v0,
@@ -387,9 +405,9 @@ print("First-frame speed of tracked 40 clips (yd/s):",
       a40.first_s.quantile([0.1, 0.5, 0.9]).round(2).to_dict(),
       f"share at 1 yd/s or more: {(a40.first_s >= 1).mean():.3f}")
 
-E_COLS = ["split"] if BURST_METHOD == "split" else ["d15", "v1"]
+E_COLS = {"split_macc": ["split", "macc"], "split": ["split"]}.get(BURST_METHOD, ["d15", "v1"])
 T_COL = "peak" if TOP_METHOD == "peak" else "fly10"
-RT_FEATS = ["d15", "v1", "split", "fly10", "peak"]
+RT_FEATS = ["d15", "v1", "split", "macc", "fly10", "peak"]
 w2 = a40[a40.k < 2].pivot(index="nfl_id", columns="k", values=RT_FEATS).dropna()
 w2.columns = [f"{f}_{k}" for f, k in w2.columns]
 w2 = w2.reset_index().merge(D[["nfl_id", "pgm", "draft_year"]], on="nfl_id")
@@ -420,7 +438,7 @@ print(f"Burst method: {BURST_METHOD} {E_COLS} (reliability {REL_E:.2f}); top-end
 
 # One row per player: average over attempts.
 P40 = a40.groupby("nfl_id").agg(
-    d15=("d15", "mean"), v1=("v1", "mean"), split=("split", "mean"), fly10=("fly10", "mean"),
+    d15=("d15", "mean"), v1=("v1", "mean"), split=("split", "mean"), macc=("macc", "mean"), fly10=("fly10", "mean"),
     peak=("peak", "mean"), a0_40=("a0_40", "median"), v0_40=("v0_40", "median"),
     attempts=("fly10", "size"),
 ).reset_index()
@@ -428,7 +446,7 @@ P40 = a40.groupby("nfl_id").agg(
 # Validity check for the burst fix: each tracked 40 feature against the official 40 and 10-yard split, within position.
 _val = P40.merge(D[["nfl_id", "pgm"]], on="nfl_id").merge(combine[["nfl_id", "forty", "ten_yd_split"]], on="nfl_id")
 VALID_ROWS = []
-for feat in ["d15", "v1", "split", "fly10", "peak", "a0_40", "v0_40"]:
+for feat in ["d15", "v1", "split", "macc", "fly10", "peak", "a0_40", "v0_40"]:
     row = {"feature": feat, "retest": RELI.get(feat, np.nan)}
     for ref in ["forty", "ten_yd_split"]:
         parts = [(abs(safe_spearman(g[feat], g[ref])), g[[feat, ref]].dropna().shape[0])
@@ -598,7 +616,7 @@ KEEP_IDS = set(D.nfl_id)
 
 
 def summarize_chunk(df):
-    cols = KEYS + ["n_after", "peak", "alat_max", "s0", "s10", "d15"]
+    cols = KEYS + ["n_after", "peak", "alat_max", "s0", "s10", "d15", "t2", "t10", "v2", "v10"]
     if df is None or len(df) == 0:
         return pd.DataFrame(columns=cols)
     # Only the Combine-tracked players are needed, which makes this pass faster and the cache small.
@@ -625,6 +643,22 @@ def summarize_chunk(df):
     p0 = df.loc[df.k == 0].set_index(KEYS)[["x", "y"]]
     p15 = df.loc[df.k == 15].set_index(KEYS)[["x", "y"]]
     out["d15"] = np.hypot(p15.x - p0.x.reindex(p15.index), p15.y - p0.y.reindex(p15.index))
+    # Clock-free burst: time and speed when the player first gets 2 and 10 yards from his snap spot (first 4 s).
+    w = df[df.k <= BURST_WINDOW].copy()
+    w = w.join(p0.rename(columns={"x": "x0", "y": "y0"}), on=KEYS)
+    w["d"] = np.hypot(w.x - w.x0, w.y - w.y0)
+    w["d"] = w.groupby(KEYS, sort=False).d.cummax()
+    wg = w.groupby(KEYS, sort=False).s
+    w["sm"] = pd.concat([w.s, wg.shift(1), wg.shift(-1)], axis=1).mean(axis=1)
+    w = w.reset_index(drop=True)
+    for mark in (2, 10):
+        hit = w[w.d >= mark].groupby(KEYS, sort=False).head(1)
+        hit = hit[hit.k > 0]
+        prev = w.loc[hit.index - 1]
+        frac = ((mark - prev.d.to_numpy()) / np.maximum(hit.d.to_numpy() - prev.d.to_numpy(), 1e-6)).clip(0, 1)
+        key = pd.MultiIndex.from_frame(hit[KEYS])
+        out[f"t{mark}"] = pd.Series((prev.k.to_numpy() + frac) / 10.0, index=key)
+        out[f"v{mark}"] = pd.Series(prev.sm.to_numpy() + frac * (hit.sm.to_numpy() - prev.sm.to_numpy()), index=key)
     return out.reset_index()[cols]
 
 
@@ -653,7 +687,7 @@ def game_pass():
     return out.drop_duplicates(KEYS)
 
 
-cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v4_tracked_players.csv"
+cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v5_clockfree.csv"
 cache_file = CACHE / cache_name
 if cache_file.exists():
     print(f"Using cached play table: {cache_file}")
@@ -773,7 +807,10 @@ def backfit(df, col, factors, min_cell=100, base=("nfl_position",)):
 
 def burst_mask(P):
     """Plays that are real standing-start bursts in the player's role."""
-    return P.role & (P.s0 < 1.0) & P.s10.notna() & P.d15.notna()
+    base = P.role & (P.s0 < 1.0)
+    if GAME_BURST == "snap":
+        return base & P.s10.notna() & P.d15.notna()
+    return base & P.t2.notna() & P.t10.notna() & (P.t10 > P.t2)
 
 
 def add_adjusted(frame):
@@ -786,7 +823,22 @@ def add_adjusted(frame):
         P.loc[open_play, "peak_c"] = backfit(P[open_play], "peak", factors)
         P.loc[open_play, "alat_c"] = backfit(P[open_play], "alat_max", factors)
     ok = burst_mask(P)
-    if ok.any():
+    if ok.any() and GAME_BURST != "snap":
+        # Same two numbers as the Combine E piece: yard 2-10 split (faster = higher) and mean acceleration over it.
+        cells = [["nfl_position", "align", "route"], ["nfl_position", "align"], ["nfl_position"]]
+        P["gsplit"] = -(P.t10 - P.t2)
+        P["gmacc"] = (P.v10 - P.v2) / (P.t10 - P.t2)
+        cols_ = ("gsplit",) if GAME_BURST == "clockfree_split" else ("gsplit", "gmacc")
+        parts = []
+        for col in cols_:
+            c_ = demean(P[ok], col, cells)
+            c_ = c_ / c_.groupby(P.loc[ok, "pgm"]).transform("std")
+            P.loc[ok, col + "_c"] = c_
+            parts.append(c_)
+        # Per-play average, kept for the play-level models downstream. The player score takes each measure's best
+        # effort (95th percentile) first and then averages, which is more repeatable than the q95 of the average.
+        P.loc[ok, "expl_c"] = sum(parts) / len(parts)
+    elif ok.any():
         cells = [["nfl_position", "align", "route"], ["nfl_position", "align"], ["nfl_position"]]
         P.loc[ok, "s10_c"] = demean(P[ok], "s10", cells)
         P.loc[ok, "d15_c"] = demean(P[ok], "d15", cells)
@@ -807,6 +859,9 @@ def game_components(P, min_plays=1, min_bursts=0, strict_join=False):
     The defaults keep every player with at least one usable play."""
     burst = P[burst_mask(P)]
     gb = burst.groupby("nfl_id").agg(nb=("expl_c", "size"), g_expl=("expl_c", q95))
+    bcols = [c for c in EXPL_PARTS if c in burst]
+    if bcols:
+        gb["g_expl"] = burst.groupby("nfl_id")[bcols].quantile(0.95).mean(axis=1)
     open_ = P[P.n_after >= MIN_FRAMES_OPEN]
     ga = open_.groupby("nfl_id").agg(
         npl=("peak_c", "size"), n_alat=("alat_c", "count"),
@@ -849,11 +904,12 @@ def split_half(P, ids, col, stat, reps=30, burst=False):
         sub = sub[burst_mask(sub)]
     else:
         sub = sub[sub.n_after >= MIN_FRAMES_OPEN]
-    sub = sub[["nfl_id", col]].dropna().reset_index(drop=True)
+    cols = list(col) if isinstance(col, (list, tuple)) else [col]   # several columns: stat of each, then average
+    sub = sub[["nfl_id"] + cols].dropna().reset_index(drop=True)
     out = []
     for _ in range(reps):
         sub["h"] = rng.integers(0, 2, len(sub))
-        g = sub.groupby(["nfl_id", "h"])[col].agg(stat).unstack("h").dropna()
+        g = sub.groupby(["nfl_id", "h"])[cols].agg(stat).mean(axis=1).unstack("h").dropna()
         if len(g) < 10:
             continue
         r = safe_spearman(g[0], g[1])
@@ -869,7 +925,7 @@ if len(G_REL) < 60:
 rel_ids = G_REL.nfl_id
 GREL = {
     "top": split_half(PTa, rel_ids, "peak_c", q95),
-    "expl": split_half(PTa, rel_ids, "expl_c", q95, burst=True),
+    "expl": split_half(PTa, rel_ids, EXPL_PARTS or "expl_c", q95, burst=True),
     "agil": split_half(PTa, rel_ids, "alat_c", q95),
 }
 K_TYP = {

@@ -114,7 +114,7 @@ try:
         ax.plot(xs, a0 - a0 / v0 * xs, color=color, lw=2.2,
                 label=f"{name}: first step a0 = {a0:.1f} yd/s², top gear v0 = {v0:.1f} yd/s")
     ax.axvspan(0, 3.28, color="#f2f2f2", zorder=0)
-    ax.text(1.64, ax.get_ylim()[1] * 0.95, "below 3 m/s:\nnot used in the fit", ha="center", va="top",
+    ax.text(1.64, ax.get_ylim()[1] * 0.95, "below 3.3 yd/s (3 m/s):\nnot used in the fit", ha="center", va="top",
             fontsize=8, color=INK2)
     ax.set_xlim(0, max(r.v0_c, r.v0_g) * 1.05)
     ax.set_ylim(0, None)
@@ -133,7 +133,7 @@ except Exception as e:  # noqa: BLE001
 # ---------------------------------------------------------------------
 ADDS = read_out("tracking_adds.csv", RUN_ID)
 A = ADDS[(ADDS.holding == "the 40") & (ADDS.target == "Game Juice+")]
-pieces = [("Speed (T, fastest 10 yd)", "Speed"), ("Burst (E, yard 2-10 split)", "Burst"),
+pieces = [("Speed (T, fastest 10 yd)", "Speed"), ("Burst (E, yard 2-10 split + accel)", "Burst"),
           ("Agility (A, position drills)", "Agility")]
 rows = ["ALL", "WR + DB", "WR", "DB", "TE", "EDGE", "DL", "OL"]
 fig, axes = plt.subplots(1, 3, figsize=(11, 4.6), sharey=True, constrained_layout=True)
@@ -213,13 +213,15 @@ finish(fig, "fig5_tiers.png", "Players with a Game Juice+ score. Bars: share in 
        "position (about +1 SD); whiskers: 95% Wilson interval.")
 
 # ---------------------------------------------------------------------
-# Figure 6: prospect card (late-round 110+ player with the highest game score)
+# Figure 6: prospect card for the lead story (WR/DB agility). Rule: late round (pick 140+ or undrafted), WR or DB,
+# 100+ usable plays, highest tracked Combine agility. Chosen as a case study, not a test.
 # ---------------------------------------------------------------------
 CJ = read_out("combine_juice_scores.csv", RUN_ID)
 GJ = read_out("game_juice_scores.csv", RUN_ID)
 card = CJ.merge(GJ[["nfl_id", "game_juice", "g_top_plus", "g_expl_plus", "g_agil_plus", "npl"]], on="nfl_id")
 card["pick"] = card.draft_overall_pick.fillna(260)
-pool = card[(card.pick >= 140) & (card.juice_final >= 110)].sort_values("game_juice", ascending=False)
+pool = card[(card.pick >= 140) & card.pgm.isin(["WR", "DB"]) & (card.npl >= 100) & card.A_trk_plus.notna()]
+pool = pool.sort_values("A_trk_plus", ascending=False)
 if len(pool):
     r = pool.iloc[0]
     labels = ["Speed", "Burst", "Agility", "Juice+"]
@@ -237,17 +239,18 @@ if len(pool):
                     fontsize=9, color=INK)
     ax.axvline(100, color="#888888", lw=1)
     lo_v = np.nanmin(np.r_[comb, game].astype(float))
-    ax.set_xlim(min(lo_v - 6, 94), None)
+    hi_v = np.nanmax(np.r_[comb, game].astype(float))
+    ax.set_xlim(min(lo_v - 6, 94), max(hi_v + 5, 106))
     ax.set_yticks(y, labels)
     ax.invert_yaxis()
     ax.set_xlabel("Score (100 = position average)")
     ax.grid(axis="y", visible=False)
-    ax.legend(loc="center right", bbox_to_anchor=(1.0, 0.42), ncol=1)
+    ax.legend(loc="lower left", bbox_to_anchor=(0.0, 1.07), ncol=2, frameon=False)
     pick_txt = "undrafted" if r.pick >= 260 else f"pick {int(r.pick)}"
     ax.set_title(f"{r.display_name} · {r.nfl_position} · {int(r.draft_year)} · {pick_txt}", loc="left")
     finish(fig, "fig6_prospect_card.png",
-           f"Late-round (pick 140+ or undrafted) player with Combine Juice+ 110+ and the highest Game Juice+. "
-           f"{int(r.npl)} usable plays. Pieces with no bar have no score for this position.")
+           f"Late-round (pick 140+ or undrafted) WR or DB with 100+ usable plays and the highest tracked Combine "
+           f"agility. Official 40: {r.forty:.2f} s. {int(r.npl)} usable plays. Case study, not a test.")
 
 (OUT / "figure_captions.txt").write_text("\n".join(CAPTIONS) + "\n")
 print(f"\nSaved {len(CAPTIONS)} figures to {FIG.resolve()} (run {RUN_ID})")

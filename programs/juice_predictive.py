@@ -403,5 +403,66 @@ for slabel, scol in [("NGS", "ngs_athleticism_score"), ("40", "neg_forty"), ("RA
     out(f"  Juice+ minus {slabel:9s} {fmt(est, lo, hi)}  ({'clear' if lo > 0 or hi < 0 else 'no clear difference'}; n={len(dd)})")
 out("  Note: pairs from the same player in different blocks are not independent, so these intervals are a bit narrow.")
 
+out("\nNegative correlations per score (raw):")
+neg = RAW[(RAW.rho < 0) & (RAW.score != "Pick")]
+out("  " + str(neg.groupby("score").size().to_dict()))
+for _, r in neg.sort_values("rho").iterrows():
+    out(f"  {r.group:4s} {r.outcome:30s} {r.score:9s} {r.rho:+.2f}")
+
+# =====================================================================
+hdr("7. FOOTBALL RESULTS, SIZE-FREE: WEIGHT AND HEIGHT REMOVED FROM EVERY SCORE")
+# =====================================================================
+out("Section 6 is unfair to Juice+: within position, lighter players have better results, and NGS, RAS-style and")
+out("the 40 partly reward being light while Juice+ removes size by design. Here weight and height ranks are")
+out("partialled out of every score AND the outcome, within position, so all four compete on equal size-free terms.")
+out("Paired bootstrap over player-outcome pairs (same caveat as section 6: intervals a bit narrow).")
+SF_SCORES = [s for s in RAW_SCORES if s[0] != "Pick"]
+size_rows, sf_blocks = [], []
+for grp, outs in OUTS.items():
+    for ocol, olabel in outs:
+        need = [c for _, c in SF_SCORES] + [ocol, "combine_weight", "combine_height"]
+        g = P[P.pgm == grp].dropna(subset=need)
+        if len(g) < 20:
+            continue
+        R = g[need].rank(pct=True)
+        C = R[["combine_weight", "combine_height"]].to_numpy()
+        y = residualize(R[ocol].to_numpy(), C)
+        rw = stats.spearmanr(g.combine_weight, g[ocol])[0]
+        q = pd.DataFrame({"block": grp + "|" + olabel, "ocol": ocol, "Y": y})
+        line = f"  {grp:4s} {olabel[:30]:30s} n={len(g):3d} weight-rho {rw:+.2f} "
+        for slabel, scol in SF_SCORES:
+            x = residualize(R[scol].to_numpy(), C)
+            q["Z_" + slabel] = x
+            r = float(np.corrcoef(x, y)[0, 1])
+            size_rows.append({"group": grp, "outcome": olabel, "score": slabel, "partial_r": r, "n": len(g),
+                              "outcome_weight_rho": rw})
+            line += f"| {slabel} {r:+.2f} "
+        out(line)
+        sf_blocks.append(q)
+SF = pd.DataFrame(size_rows)
+wins_sf = SF.loc[SF.groupby(["group", "outcome"]).partial_r.idxmax()].score.value_counts()
+out(f"\nBlocks where each score is highest, size-free: {wins_sf.to_dict()} (of {SF.groupby(['group', 'outcome']).ngroups})")
+sf_pool = []
+for label, drop_yac in [("All blocks", False), ("Without YAC over expected", True)]:
+    D = pd.concat([q for q in sf_blocks if not (drop_yac and q.ocol.iloc[0] == "o_yac_oe")], ignore_index=True)
+    out(f"\nPooled, {label} (pairs = {len(D)}):")
+    yv = D.Y.to_numpy()
+    for slabel, _ in SF_SCORES:
+        r = float(np.corrcoef(D["Z_" + slabel], yv)[0, 1])
+        sf_pool.append({"pool": label, "score": slabel, "estimate": r, "ci_low": np.nan, "ci_high": np.nan, "n": len(D)})
+        out(f"  {slabel:9s} {r:+.3f}")
+    idx = rng.integers(0, len(D), (B, len(D)))
+    a = D["Z_Juice+"].to_numpy()
+    for slabel in ["NGS", "RAS-style", "40"]:
+        b = D["Z_" + slabel].to_numpy()
+        est = np.corrcoef(a, yv)[0, 1] - np.corrcoef(b, yv)[0, 1]
+        bs = [np.corrcoef(a[i], yv[i])[0, 1] - np.corrcoef(b[i], yv[i])[0, 1] for i in idx]
+        lo, hi = np.percentile(bs, [2.5, 97.5])
+        sf_pool.append({"pool": label, "score": f"Juice+ minus {slabel}", "estimate": est, "ci_low": lo,
+                        "ci_high": hi, "n": len(D)})
+        out(f"  Juice+ minus {slabel:9s} {fmt(est, lo, hi)}  ({'clear' if lo > 0 or hi < 0 else 'no clear difference'})")
+save_with_run(SF, "football_results_size_free.csv", RUN_ID)
+save_with_run(pd.DataFrame(sf_pool), "football_results_size_free_pooled.csv", RUN_ID)
+
 (OUT / "predictive_report.txt").write_text("\n".join(LINES))
 print(f"\nSaved predictive_report.txt and tables to {OUT.resolve()} (run {RUN_ID})")

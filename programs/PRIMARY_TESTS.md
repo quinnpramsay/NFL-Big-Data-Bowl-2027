@@ -21,3 +21,17 @@ Rules for the frozen run:
 - Change no setting after seeing a primary result. If a setting has to change (a bug), rerun all five and report both.
 - One run produces every number in the writeup. The run ID is in every CSV and in `run_manifest.json`.
 - Single-drill scans, blend weights and new score versions are out of scope (audit, "Stop doing").
+
+## Setting change log
+
+- **November 5, 2026: burst redefined on both sides** (before the frozen run). Combine E = yard 2-10 split averaged with
+  mean acceleration over yards 2-10. Game burst = the same two numbers, measured clock-free from the snap spot (the old
+  game burst was mostly reaction time). Old behavior: `BURST_METHOD=split GAME_BURST=snap`. All five tests rerun:
+
+  | Test | Before (run 20261105T005112Z-69e030) | After (run 20261105T161250Z-641f77) |
+  |---|---|---|
+  | P1 | +0.169 [+0.036, +0.294], supported | +0.173 [+0.019, +0.304], supported |
+  | P2 | +0.168 [-0.086, +0.416], not shown | +0.144 [-0.093, +0.383], not shown |
+  | P3 | -0.054 [-0.321, +0.213], not shown | unchanged (does not use burst) |
+  | P4 | k* = 3 | k* = 3 |
+  | P5 | +0.224 [+0.128, +0.316], supported | unchanged (does not use burst) |
