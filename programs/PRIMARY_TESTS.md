@@ -39,3 +39,28 @@ Rules for the frozen run:
   frame can set a max); E shrinkage uses the retest reliability of the E piece itself (0.67), not the mean of its parts
   (0.57); the held-out formula uses the same plain least-squares size model as the main score (it still used ridge).
   P1 +0.172 [+0.030, +0.296] supported; P2 +0.147 [-0.091, +0.383] not shown; P3, P4 (k* = 3), P5 unchanged.
+
+## Secondary checks (written November 5, 2026, before `juice_casework.py` was run)
+
+Follow-ups on the two leads that survived: WR/DB agility (P1) and the OL burst chain (exploratory, chain table).
+These were written after seeing the point estimates in `transfer_report.txt` (sections A, B, D), so they are
+checks of known leads, not fresh predictions. They do not change P1-P5.
+
+| ID | Claim | Statistic | Pass rule |
+|---|---|---|---|
+| S1 | WR + DB: Combine agility predicts the same trait in games, beyond the 40 | Partial Spearman, Combine A vs game agility, holding the 40, within-group ranks + group dummy | 95% bootstrap interval above 0, and A minus the 40 (each holding the other) above 0 |
+| S2 | S1 is not a selection artifact | S1 re-estimated (a) weighted by inverse probability of reaching 50 plays, (b) on mean game agility at floors 10, 25, 50, 100, 200 plays | (a) interval above 0; (b) every point estimate above 0 |
+| S3 | OL: game burst links to lower peak pressure for reasons other than play mix | Link 2 with the outcome rebuilt from dropbacks that are NOT burst plays, holding the player's screen share and number of burst plays | 95% bootstrap interval above 0 |
+| S4 | OL: the chain carries through | Indirect effect a x b (Combine E -> game burst -> peak pressure, b holding E), percentile bootstrap | Interval above 0 |
+
+Late-round case studies are descriptive (no pass rule). Everything else in `casework_report.txt` is exploratory.
+
+## Exploratory rescue of the OL chain (written November 5, 2026, after S3/S4 failed)
+
+S3 and S4 failed because the OL game burst score (95th percentile) rises with the number of burst plays. Two
+alternative measures, chosen AFTER seeing that result, so anything they show is exploratory, not a pass of S3/S4:
+(a) mean game burst per player (floors 10 and 20 plays), (b) mixed-model player effect (random intercept, every
+player with 1+ burst play, shrunk toward the group mean in proportion to his play count). Both size-free within OL.
+"Improves" means: link 2 on non-burst dropbacks, holding screen share and number of burst plays, has a 95%
+interval above 0 AND link 1 (Combine burst -> game burst, holding the 40) has a 95% interval above 0.
+If neither measure does both, OL stays a side note in the writeup.
