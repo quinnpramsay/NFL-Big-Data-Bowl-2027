@@ -35,3 +35,7 @@ Rules for the frozen run:
   | P3 | -0.054 [-0.321, +0.213], not shown | unchanged (does not use burst) |
   | P4 | k* = 3 | k* = 3 |
   | P5 | +0.224 [+0.128, +0.316], supported | unchanged (does not use burst) |
+- **November 5, 2026: robustness fixes** (run 20261105T163235Z-ffa63e). Game agility per play uses the second-highest frame (one noisy
+  frame can set a max); E shrinkage uses the retest reliability of the E piece itself (0.67), not the mean of its parts
+  (0.57); the held-out formula uses the same plain least-squares size model as the main score (it still used ridge).
+  P1 +0.172 [+0.030, +0.296] supported; P2 +0.147 [-0.091, +0.383] not shown; P3, P4 (k* = 3), P5 unchanged.

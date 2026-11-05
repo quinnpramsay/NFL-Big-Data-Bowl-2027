@@ -534,6 +534,7 @@ out("Rookie season only. Target = the 95th percentile of a player's rookie-seaso
 out("every k). The early read is the 95th percentile of his first k plays, the same best-effort statistic.")
 out("Predictors: the first k plays (game only), the Combine (matched tracked piece + the 40), or both.")
 out("Leave-one-class-out R^2. Takeover = smallest k where game-only beats Combine-only.")
+out("Target and early read are size-free within position (weight and height removed), like Game Juice+.")
 K_GRID = [1, 2, 3, 5, 10, 15, 20, 30, 50, 75, 100]
 TARGET_FROM, MIN_TARGET = 100, 50
 TAKE_SPECS = [("peak_play", "game top speed", "T_trk_plus"), ("alat_play", "game agility", "A_trk_plus"),
@@ -542,6 +543,16 @@ pl_draft = PLM2.merge(P[["nfl_id", "draft_year", "T_trk_plus", "A_trk_plus", "E_
                       on="nfl_id")
 pl_draft = pl_draft[pl_draft.season == pl_draft.draft_year].sort_values(["nfl_id", "game_id", "play_id"])
 TAKE_ROWS = []
+
+
+def size_free(df, col):
+    """Residual of col on weight and height within position: the same size-free terms as Game Juice+ and the
+    size-adjusted Combine pieces. Without this the size-adjusted Combine predictor is graded on a size-loaded target."""
+    out = pd.Series(np.nan, index=df.index)
+    for _, g in df.dropna(subset=[col, "combine_weight", "combine_height"]).groupby("pgm"):
+        X = np.column_stack([np.ones(len(g)), g.combine_weight, g.combine_height])
+        out.loc[g.index] = g[col] - X @ np.linalg.lstsq(X, g[col], rcond=None)[0]
+    return out
 
 
 def loco_r2(df, xcols, ycol="target"):
@@ -564,19 +575,20 @@ for mcol, mlabel, ccol in TAKE_SPECS:
     # Best effort, as in Game Juice+: the 95th percentile of the later plays is the target.
     tgt = d[d.k >= TARGET_FROM].groupby("nfl_id")[mcol].agg([("q95", lambda s: s.quantile(0.95)), "count"])
     tgt = tgt[tgt["count"] >= MIN_TARGET]["q95"].rename("target")
-    base = P.set_index("nfl_id").loc[tgt.index, ["pgm", "draft_year", ccol, "neg_forty"]].join(tgt).dropna()
+    base = P.set_index("nfl_id").loc[tgt.index, ["pgm", "draft_year", ccol, "neg_forty", "combine_weight",
+                                                 "combine_height"]].join(tgt).dropna()
     if len(base) < 30:
         out(f"  {mlabel}: only {len(base)} rookies with {TARGET_FROM + MIN_TARGET}+ plays; skipped")
         continue
-    # Center within position so the models compare players inside a group.
-    base["target"] = base.target - base.groupby("pgm").target.transform("mean")
+    # Size-free within position (this also centers it), so the models compare players inside a group.
+    base["target"] = size_free(base, "target")
     for c in (ccol, "neg_forty"):
         base[c] = base.groupby("pgm")[c].transform(lambda s: (s - s.mean()) / s.std())
     r2_c, n_c = loco_r2(base, [ccol, "neg_forty"])
     for k in K_GRID:
         early = d[d.k < k].groupby("nfl_id")[mcol].quantile(0.95).rename("early")
         b2 = base.join(early).dropna()
-        b2["early"] = b2.early - b2.groupby("pgm").early.transform("mean")
+        b2["early"] = size_free(b2, "early")
         r2_g, _ = loco_r2(b2, ["early"])
         r2_b, _ = loco_r2(b2, ["early", ccol, "neg_forty"])
         TAKE_ROWS.append({"metric": mlabel, "k": k, "r2_game_only": r2_g, "r2_combine_only": r2_c,
@@ -594,14 +606,17 @@ for mlabel, d in TAKE.groupby("metric", sort=False):
 
 # Unused juice: does year 2 move toward the Combine read?
 hdr("F. UNUSED JUICE: DO PLAYERS MOVING BELOW THEIR COMBINE CATCH UP IN YEAR 2? (audit item 6)")
-out("Season means of each play metric (50+ plays per season), standardized within group and season.")
+out("Season means of each play metric (50+ plays per season), size-free and standardized within group and season.")
 out("Test: year-2 score on year-1 score plus the Combine piece. A positive Combine coefficient means the Combine")
 out("predicts year 2 beyond year 1 (catch-up). Regression to the mean is handled by keeping year 1 in the model.")
 UJ_ROWS = []
 for mcol, mlabel, ccol in TAKE_SPECS:
     s = PLM2.dropna(subset=[mcol]).groupby(["nfl_id", "season"])[mcol].agg(["mean", "count"]).reset_index()
-    s = s[s["count"] >= 50].merge(P[["nfl_id", "pgm", "draft_year", ccol]], on="nfl_id")
-    s["z"] = s.groupby(["pgm", "season"])["mean"].transform(lambda v: (v - v.mean()) / v.std())
+    s = s[s["count"] >= 50].merge(P[["nfl_id", "pgm", "draft_year", ccol, "combine_weight", "combine_height"]],
+                                  on="nfl_id")
+    # Size-free within position and season, matching the size-adjusted Combine piece.
+    s["sf"] = pd.concat([size_free(g, "mean") for _, g in s.groupby("season")])
+    s["z"] = s.groupby(["pgm", "season"])["sf"].transform(lambda v: (v - v.mean()) / v.std())
     y1 = s[s.season == s.draft_year].set_index("nfl_id")
     y2 = s[s.season == s.draft_year + 1].set_index("nfl_id")
     d = y1[["pgm", "z", ccol]].rename(columns={"z": "y1"}).join(y2[["z"]].rename(columns={"z": "y2"})).dropna()

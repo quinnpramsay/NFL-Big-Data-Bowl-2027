@@ -13,6 +13,8 @@ Changes from the November 3 audit (juice_plus_improvement_plan.md):
     mostly reaction time: it tracked Combine burst at only +0.07 and the 40 at +0.17. The new one tracks Combine burst
     at about +0.21, and Game Juice+ pieces agree far better (alpha: WR 0.50 -> 0.63, TE -0.11 -> 0.75).
     Old behavior: BURST_METHOD=split GAME_BURST=snap.
+  - Game agility per play uses the second-highest frame, not the single highest (GAME_AGIL=max for the old one).
+  - E shrinkage uses the retest reliability of the E piece itself, not the average of its parts' reliabilities.
   - Game Juice+ needs MIN_GAME_PLAYS usable plays (default 50). Players below the floor are reported, not scored.
   - Game Juice+ is the reliability-weighted average of its shrunk pieces on the 100 scale. It is no longer
     re-standardized, so a final score always sits inside the range of its own pieces.
@@ -38,11 +40,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
-from sklearn.linear_model import LinearRegression, RidgeCV
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import LeaveOneOut, cross_val_predict
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
@@ -83,6 +83,10 @@ SPLIT_FROM, SPLIT_TO = 2.0, 10.0
 # Combine 40. "clockfree_split" = the split time only. "snap" = old speed at 1.0 s and distance at 1.5 s after the
 # snap (mostly reaction / get-off).
 GAME_BURST = os.getenv("GAME_BURST", "clockfree")
+# Game agility per play: "second" (default) = second-highest frame of lateral acceleration (s >= 2 yd/s), robust to one
+# noisy frame. "max" = highest frame (old). "p90" = 90th percentile of the play's frames. "max_s1" = max, s >= 1 yd/s.
+GAME_AGIL = os.getenv("GAME_AGIL", "second")
+AGIL_COL = {"max": "alat_max", "second": "alat_2nd", "p90": "alat_p90", "max_s1": "alat_max_s1"}[GAME_AGIL]
 BURST_WINDOW = 40                                # frames after the snap searched for the 2- and 10-yard marks
 EXPL_PARTS = {"clockfree": ["gsplit_c", "gmacc_c"], "clockfree_split": ["gsplit_c"]}.get(GAME_BURST, [])
 # Top-end measure for the Combine T piece. "fly10" = fastest 10 yards (default). "peak" = peak smoothed speed.
@@ -101,7 +105,7 @@ PGM = {"T": "OL", "G": "OL", "C": "OL", "DT": "DL", "NT": "DL", "DE": "EDGE", "O
 
 # Run ID: one per run, written into every output table, so every number in the writeup can be traced to one run.
 SETTINGS = {k: v for k, v in dict(
-    JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, GAME_BURST=GAME_BURST, TOP_METHOD=TOP_METHOD,
+    JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, GAME_BURST=GAME_BURST, GAME_AGIL=GAME_AGIL, TOP_METHOD=TOP_METHOD,
     DROP_BLOWOUTS=DROP_BLOWOUTS, GARBAGE_WP=GARBAGE_WP, MIN_PLAY_SECONDS=MIN_PLAY_SECONDS,
     MIN_FRAMES_OPEN=MIN_FRAMES_OPEN, GATE_ALPHA=GATE_ALPHA, RUN_BLEND_SEARCH=RUN_BLEND_SEARCH).items()}
 try:
@@ -407,7 +411,11 @@ print("First-frame speed of tracked 40 clips (yd/s):",
 
 E_COLS = {"split_macc": ["split", "macc"], "split": ["split"]}.get(BURST_METHOD, ["d15", "v1"])
 T_COL = "peak" if TOP_METHOD == "peak" else "fly10"
-RT_FEATS = ["d15", "v1", "split", "macc", "fly10", "peak"]
+# The E piece itself, per attempt: the average of its parts standardized within position. Its retest reliability is
+# what the shrinkage should use (an average of two measures repeats better than either part).
+_pg = a40.nfl_id.map(D.set_index("nfl_id").pgm)
+a40["E_comp"] = pd.concat([a40[c_].groupby(_pg).transform(zs) for c_ in E_COLS], axis=1).mean(axis=1)
+RT_FEATS = ["d15", "v1", "split", "macc", "fly10", "peak", "E_comp"]
 w2 = a40[a40.k < 2].pivot(index="nfl_id", columns="k", values=RT_FEATS).dropna()
 w2.columns = [f"{f}_{k}" for f, k in w2.columns]
 w2 = w2.reset_index().merge(D[["nfl_id", "pgm", "draft_year"]], on="nfl_id")
@@ -429,7 +437,7 @@ def retest_reliability(w):
                 zsum += np.arctanh(r) * (len(d) - 3)
                 wsum += len(d) - 3
         out[feat] = float(np.tanh(zsum / wsum)) if wsum > 0 else 0.6
-    return float(np.mean([out[c] for c in E_COLS])), out[T_COL], out
+    return out["E_comp"], out[T_COL], out
 
 
 REL_E, REL_T, RELI = retest_reliability(w2)
@@ -616,7 +624,8 @@ KEEP_IDS = set(D.nfl_id)
 
 
 def summarize_chunk(df):
-    cols = KEYS + ["n_after", "peak", "alat_max", "s0", "s10", "d15", "t2", "t10", "v2", "v10"]
+    cols = KEYS + ["n_after", "peak", "alat_max", "alat_2nd", "alat_p90", "alat_max_s1", "s0", "s10", "d15",
+                   "t2", "t6", "t10", "v2", "v6", "v10"]
     if df is None or len(df) == 0:
         return pd.DataFrame(columns=cols)
     # Only the Combine-tracked players are needed, which makes this pass faster and the cache small.
@@ -635,8 +644,13 @@ def summarize_chunk(df):
     omg = om.groupby(gk)
     om_s = pd.concat([om, omg.shift(1), omg.shift(-1)], axis=1).mean(axis=1)
     df["alat"] = (df.s * om_s.abs()).where(df.s >= 2.0)
+    df["alat1"] = (df.s * om_s.abs()).where(df.s >= 1.0)
     out = df.groupby(KEYS).agg(
-        n_after=("k", "size"), peak=("s", "max"), alat_max=("alat", "max"))
+        n_after=("k", "size"), peak=("s", "max"), alat_max=("alat", "max"), alat_max_s1=("alat1", "max"))
+    # Robust versions of the per-play peak (one noisy frame can set a max): second-highest frame, and 90th pct.
+    out["alat_p90"] = df.groupby(KEYS).alat.quantile(0.9)
+    rk = df.groupby(KEYS).alat.rank(ascending=False, method="first")
+    out["alat_2nd"] = df.loc[rk == 2].set_index(KEYS).alat
     out["s0"] = df.loc[df.k == 0].set_index(KEYS).s
     out["s10"] = df.loc[df.k == 10].set_index(KEYS).s
     # Distance covered in the first 1.5 s after the snap (same idea as the Combine d15).
@@ -651,7 +665,7 @@ def summarize_chunk(df):
     wg = w.groupby(KEYS, sort=False).s
     w["sm"] = pd.concat([w.s, wg.shift(1), wg.shift(-1)], axis=1).mean(axis=1)
     w = w.reset_index(drop=True)
-    for mark in (2, 10):
+    for mark in (2, 6, 10):
         hit = w[w.d >= mark].groupby(KEYS, sort=False).head(1)
         hit = hit[hit.k > 0]
         prev = w.loc[hit.index - 1]
@@ -687,7 +701,7 @@ def game_pass():
     return out.drop_duplicates(KEYS)
 
 
-cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v5_clockfree.csv"
+cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v6.csv"
 cache_file = CACHE / cache_name
 if cache_file.exists():
     print(f"Using cached play table: {cache_file}")
@@ -821,7 +835,7 @@ def add_adjusted(frame):
     open_play = P.n_after >= MIN_FRAMES_OPEN
     if open_play.any():
         P.loc[open_play, "peak_c"] = backfit(P[open_play], "peak", factors)
-        P.loc[open_play, "alat_c"] = backfit(P[open_play], "alat_max", factors)
+        P.loc[open_play, "alat_c"] = backfit(P[open_play], AGIL_COL, factors)
     ok = burst_mask(P)
     if ok.any() and GAME_BURST != "snap":
         # Same two numbers as the Combine E piece: yard 2-10 split (faster = higher) and mean acceleration over it.
@@ -1112,8 +1126,8 @@ def adjust_frozen(df, col, train):
             return np.column_stack([x.combine_weight, x.combine_height,
                                     (x.combine_weight - tr.combine_weight.mean()) ** 2 / 100])
         if len(tr) >= 25:
-            mdl = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20))).fit(feats(tr), tr[col])
-            p = mdl.predict(feats(te))
+            # Same size model as adjust() (plain least squares), so the held-out check tests the formula in use.
+            p = LinearRegression().fit(feats(tr), tr[col]).predict(feats(te))
         else:
             p = tr[col].mean()
         r = te[col].values - p
