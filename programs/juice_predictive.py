@@ -23,7 +23,7 @@ from scipy import stats
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from juice_common import OUT, get_file, load_run_id, read_out, save_with_run  # noqa: E402
+from juice_common import OUT, get_file, load_run_id, read_out, save_with_run, section_rng  # noqa: E402
 
 RUN_ID = load_run_id()
 B = 1000
@@ -38,6 +38,10 @@ def out(s=""):
 
 
 def hdr(s):
+    """Section header. Also reseeds the shared generator from the section label, so adding or reordering
+    sections never moves another section's bootstrap draws."""
+    global rng
+    rng = section_rng("predictive", s.split()[0])
     out("\n" + "=" * 78 + f"\n{s}\n" + "=" * 78)
 
 

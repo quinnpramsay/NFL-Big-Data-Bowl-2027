@@ -14,6 +14,8 @@ Changes from the November 3 audit (juice_plus_improvement_plan.md):
     at about +0.21, and Game Juice+ pieces agree far better (alpha: WR 0.50 -> 0.63, TE -0.11 -> 0.75).
     Old behavior: BURST_METHOD=split GAME_BURST=snap.
   - Game agility per play uses the second-highest frame, not the single highest (GAME_AGIL=max for the old one).
+  - GAME_AGIL_WINDOW=prethrow measures WR/TE/DB game agility before the throw only. Off by default (tried and reverted,
+    see PRIMARY_TESTS.md).
   - E shrinkage uses the retest reliability of the E piece itself, not the average of its parts' reliabilities.
   - Game Juice+ needs MIN_GAME_PLAYS usable plays (default 50). Players below the floor are reported, not scored.
   - Game Juice+ is the reliability-weighted average of its shrunk pieces on the 100 scale. It is no longer
@@ -23,7 +25,8 @@ Changes from the November 3 audit (juice_plus_improvement_plan.md):
   - The position-blend weight search is off by default (RUN_BLEND_SEARCH=1 to turn it on).
 
 Run in Colab or locally. Needs the competition files (Kaggle login) or JUICE_DATA_DIR pointing at them.
-Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_predictive.py -> juice_figures.py
+Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_predictive.py -> juice_casework.py
+-> juice_routes.py -> juice_figures.py. Once, after the frozen run: juice_forward.py --freeze (2026 forward test).
 """
 
 # ## 0. Setup and settings
@@ -87,6 +90,13 @@ GAME_BURST = os.getenv("GAME_BURST", "clockfree")
 # noisy frame. "max" = highest frame (old). "p90" = 90th percentile of the play's frames. "max_s1" = max, s >= 1 yd/s.
 GAME_AGIL = os.getenv("GAME_AGIL", "second")
 AGIL_COL = {"max": "alat_max", "second": "alat_2nd", "p90": "alat_p90", "max_s1": "alat_max_s1"}[GAME_AGIL]
+# Which frames count for game agility. "all" (default): every frame after the snap. "prethrow": for WR, TE and DB on
+# plays with a forward pass, only the frames from the snap to the throw (at least PRE_THROW_MIN_FRAMES of them).
+# "prethrow" was tried on November 5, 2026 and reverted: it did not link to separation better (check R4, +0.114 vs
+# +0.139) and weakened P1 (+0.147 vs +0.172). See PRIMARY_TESTS.md.
+GAME_AGIL_WINDOW = os.getenv("GAME_AGIL_WINDOW", "all")
+PRE_THROW_MIN_FRAMES = 10
+PRE_THROW_GROUPS = ("WR", "TE", "DB")
 BURST_WINDOW = 40                                # frames after the snap searched for the 2- and 10-yard marks
 EXPL_PARTS = {"clockfree": ["gsplit_c", "gmacc_c"], "clockfree_split": ["gsplit_c"]}.get(GAME_BURST, [])
 # Top-end measure for the Combine T piece. "fly10" = fastest 10 yards (default). "peak" = peak smoothed speed.
@@ -106,16 +116,30 @@ PGM = {"T": "OL", "G": "OL", "C": "OL", "DT": "DL", "NT": "DL", "DE": "EDGE", "O
 # Run ID: one per run, written into every output table, so every number in the writeup can be traced to one run.
 SETTINGS = {k: v for k, v in dict(
     JUICE_VERSION=JUICE_VERSION, MIN_GAME_PLAYS=MIN_GAME_PLAYS, BURST_METHOD=BURST_METHOD, GAME_BURST=GAME_BURST, GAME_AGIL=GAME_AGIL, TOP_METHOD=TOP_METHOD,
-    DROP_BLOWOUTS=DROP_BLOWOUTS, GARBAGE_WP=GARBAGE_WP, MIN_PLAY_SECONDS=MIN_PLAY_SECONDS,
+    GAME_AGIL_WINDOW=GAME_AGIL_WINDOW, DROP_BLOWOUTS=DROP_BLOWOUTS, GARBAGE_WP=GARBAGE_WP, MIN_PLAY_SECONDS=MIN_PLAY_SECONDS,
     MIN_FRAMES_OPEN=MIN_FRAMES_OPEN, GATE_ALPHA=GATE_ALPHA, RUN_BLEND_SEARCH=RUN_BLEND_SEARCH).items()}
+_here = Path(__file__).resolve().parent if "__file__" in globals() else None
 try:
-    _git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
-                          cwd=Path(__file__).resolve().parent if "__file__" in globals() else None).stdout.strip()
+    _git = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=_here).stdout.strip()
+    # Uncommitted edits to the pipeline mean the commit alone can't say which code made this run.
+    _dirty = bool(subprocess.run(["git", "status", "--porcelain", "--", "."], capture_output=True, text=True,
+                                 cwd=_here).stdout.strip()) if _git else False
 except Exception:
-    _git = ""
+    _git, _dirty = "", False
+if _git and _dirty:
+    _git += "-dirty"
+# Fingerprint of the pipeline code itself (every .py next to this file), recorded in the manifest.
+try:
+    _h = hashlib.sha1()
+    for _f in sorted((_here or Path(".")).glob("*.py")):
+        _h.update(_f.name.encode())
+        _h.update(_f.read_bytes())
+    CODE_SHA = _h.hexdigest()[:12]
+except Exception:
+    CODE_SHA = ""
 _stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 RUN_ID = f"{_stamp}-{hashlib.sha1(json.dumps(SETTINGS, sort_keys=True).encode()).hexdigest()[:6]}"
-print(f"Run ID: {RUN_ID}  (git {_git or 'n/a'})  settings: {SETTINGS}")
+print(f"Run ID: {RUN_ID}  (git {_git or 'n/a'}, code {CODE_SHA or 'n/a'})  settings: {SETTINGS}")
 ALIAS = {"PASS_PRO-MIRROR_DRILL": "PASS_PRO_MIRROR_DRILL", "SPEED_OUT_LEFT": "SPEED_OUT_ROUTE_LEFT",
          "OVER_THE_SHOULDER_ADJUST": "OVER_SHOULDER_ADJUST"}
 KEYS = ["game_id", "play_id", "nfl_id"]
@@ -194,7 +218,7 @@ def save(df, name):
     """Write a table with the run ID as its first column."""
     df = df.copy()
     df.insert(0, "run_id", RUN_ID)
-    df.to_csv(OUT / name, index=False)
+    df.to_csv(OUT / name, index=False, float_format="%.10g")   # 10 digits: no last-digit noise between runs
 
 
 def circ(deg):
@@ -625,7 +649,7 @@ KEEP_IDS = set(D.nfl_id)
 
 def summarize_chunk(df):
     cols = KEYS + ["n_after", "peak", "alat_max", "alat_2nd", "alat_p90", "alat_max_s1", "s0", "s10", "d15",
-                   "t2", "t6", "t10", "v2", "v6", "v10"]
+                   "t2", "t6", "t10", "v2", "v6", "v10", "n_pre", "alat_2nd_pre"]
     if df is None or len(df) == 0:
         return pd.DataFrame(columns=cols)
     # Only the Combine-tracked players are needed, which makes this pass faster and the cache small.
@@ -651,6 +675,13 @@ def summarize_chunk(df):
     out["alat_p90"] = df.groupby(KEYS).alat.quantile(0.9)
     rk = df.groupby(KEYS).alat.rank(ascending=False, method="first")
     out["alat_2nd"] = df.loc[rk == 2].set_index(KEYS).alat
+    # Pre-throw window: frames from the snap up to the forward pass (pass plays only; NaN on other plays).
+    thr = df.loc[df["event"].isin(["pass_forward", "pass_shovel"])].groupby(KEYS).time.min().rename("thr")
+    pre = df.join(thr, on=KEYS)
+    pre = pre[pre.thr.notna() & (pre.time <= pre.thr)]
+    out["n_pre"] = pre.groupby(KEYS).size()
+    rk_pre = pre.groupby(KEYS).alat.rank(ascending=False, method="first")
+    out["alat_2nd_pre"] = pre.loc[rk_pre == 2].set_index(KEYS).alat
     out["s0"] = df.loc[df.k == 0].set_index(KEYS).s
     out["s10"] = df.loc[df.k == 10].set_index(KEYS).s
     # Distance covered in the first 1.5 s after the snap (same idea as the Combine d15).
@@ -701,7 +732,7 @@ def game_pass():
     return out.drop_duplicates(KEYS)
 
 
-cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v6.csv"
+cache_name = "game_play_table_v2.csv" if REUSE_JUICE_PY_CACHE else "game_play_table_v7.csv"
 cache_file = CACHE / cache_name
 if cache_file.exists():
     print(f"Using cached play table: {cache_file}")
@@ -827,15 +858,27 @@ def burst_mask(P):
     return base & P.t2.notna() & P.t10.notna() & (P.t10 > P.t2)
 
 
+def agility_column(P):
+    """Per-play game agility value. With GAME_AGIL_WINDOW=prethrow, WR/TE/DB pass plays use the snap-to-throw window
+    (second-highest frame, the same rule as AGIL_COL="second"); a throw sooner than PRE_THROW_MIN_FRAMES leaves no value."""
+    v = P[AGIL_COL].copy()
+    if GAME_AGIL_WINDOW == "prethrow" and "n_pre" in P:
+        pass_play = P.pgm.isin(PRE_THROW_GROUPS) & P.n_pre.notna()
+        pre_ok = P.n_pre >= PRE_THROW_MIN_FRAMES
+        v = v.where(~pass_play, P.alat_2nd_pre.where(pre_ok))
+    return v
+
+
 def add_adjusted(frame):
     P = frame.copy()
+    P["agil_play"] = agility_column(P)
     factors = ["route", "len_s", "align"]
     P["peak_c"], P["alat_c"], P["s10_c"], P["d15_c"], P["expl_c"] = (
         np.nan, np.nan, np.nan, np.nan, np.nan)
     open_play = P.n_after >= MIN_FRAMES_OPEN
     if open_play.any():
         P.loc[open_play, "peak_c"] = backfit(P[open_play], "peak", factors)
-        P.loc[open_play, "alat_c"] = backfit(P[open_play], AGIL_COL, factors)
+        P.loc[open_play, "alat_c"] = backfit(P[open_play], "agil_play", factors)
     ok = burst_mask(P)
     if ok.any() and GAME_BURST != "snap":
         # Same two numbers as the Combine E piece: yard 2-10 split (faster = higher) and mean acceleration over it.
@@ -1539,7 +1582,7 @@ save(BURST_VALIDITY, "burst_validity.csv")
 save(G_ALL[["nfl_id", "npl", "nb", "n_alat"]], "game_play_counts.csv")
 
 # Run manifest: settings and headline counts for this run.
-MANIFEST = {"run_id": RUN_ID, "git": _git, "utc": _stamp, "settings": SETTINGS,
+MANIFEST = {"run_id": RUN_ID, "git": _git, "code_sha": CODE_SHA, "utc": _stamp, "settings": SETTINGS,
             "counts": {"combine_tracked": int(n_tracked), "combine_scored": int(len(FINAL)),
                        "game_any_usable": int(len(G_ALL)), "game_scored": int(len(GAME)), "both": int(len(M)),
                        "head_to_head": int(len(V))},

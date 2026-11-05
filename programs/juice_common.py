@@ -6,6 +6,7 @@ read the run ID that juice.py wrote, so every table from one run carries the sam
 
 import json
 import os
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -70,9 +71,32 @@ def read_out(name, run_id):
 
 
 def save_with_run(df, name, run_id):
+    """Write a table with the run ID first. Floats are written to 10 significant digits, so the last-digit noise of
+    floating-point sums does not make two runs of the same code differ byte for byte."""
     df = df.copy()
     df.insert(0, "run_id", run_id)
-    df.to_csv(OUT / name, index=False)
+    df.to_csv(OUT / name, index=False, float_format="%.10g")
+
+
+def section_rng(script, section, base=2027):
+    """A random generator seeded by script and section label (e.g. "B."), so adding or reordering sections never
+    moves another section's bootstrap draws."""
+    return np.random.default_rng([base, zlib.crc32(f"{script}:{section}".encode())])
+
+
+MIN_SIZE_GROUP = 10
+
+
+def size_free(df, col, by="pgm", min_n=MIN_SIZE_GROUP):
+    """Residual of col on weight and height within each group. Groups with fewer than min_n players are left blank:
+    a 3-parameter fit on 2-3 players is exact, so its residual is rounding noise (and its sign flips between runs)."""
+    o = pd.Series(np.nan, index=df.index)
+    for _, g in df.dropna(subset=[col, "combine_weight", "combine_height"]).groupby(by):
+        if len(g) < min_n:
+            continue
+        X = np.column_stack([np.ones(len(g)), g.combine_weight, g.combine_height])
+        o.loc[g.index] = g[col] - X @ np.linalg.lstsq(X, g[col], rcond=None)[0]
+    return o
 
 
 def grouped_centered_mean(values, groups, half=2):

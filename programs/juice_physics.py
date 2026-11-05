@@ -63,7 +63,7 @@ def top_bins(df, group_cols):
     """Two highest accelerations per player per speed bin, plus the top smoothed speed."""
     df = df.assign(bin=np.floor(df.s_sm / BIN).astype(int))
     df = df[df.acc > 0]
-    top = (df.sort_values("acc", ascending=False)
+    top = (df.sort_values("acc", ascending=False, kind="mergesort")
              .groupby(group_cols + ["bin"], sort=False).head(TOP_K)[group_cols + ["bin", "acc"]])
     smax = df.groupby(group_cols).s_sm.max().rename("s_max").reset_index()
     return top, smax
@@ -159,7 +159,7 @@ def summarize(df):
 
 def reduce_top(parts):
     t = pd.concat(parts, ignore_index=True)
-    return t.sort_values("acc", ascending=False).groupby(["nfl_id", "season", "stype", "bin"]).head(TOP_K)
+    return t.sort_values("acc", ascending=False, kind="mergesort").groupby(["nfl_id", "season", "stype", "bin"]).head(TOP_K)
 
 
 def game_pass():
@@ -202,7 +202,8 @@ else:
 # Regular season pooled over all seasons, and by season (for year 1 vs year 2).
 REG = GTOP[GTOP.stype == "REG"]
 REGM = GSMAX[GSMAX.stype == "REG"]
-pooled_top = REG.sort_values("acc", ascending=False).groupby(["nfl_id", "bin"]).head(TOP_K).assign(scope="game_reg")
+pooled_top = (REG.sort_values(["acc", "nfl_id", "bin"], ascending=[False, True, True], kind="mergesort")
+              .groupby(["nfl_id", "bin"]).head(TOP_K).assign(scope="game_reg"))
 pooled_smax = REGM.groupby("nfl_id").s_max.max().reset_index().assign(scope="game_reg")
 GAME_ASP = fit_asp(pooled_top, pooled_smax, ["nfl_id", "scope"])
 GAME_ASP_SEASON = fit_asp(REG.assign(scope="game_reg_season"), REGM.assign(scope="game_reg_season"),
@@ -214,6 +215,9 @@ save_with_run(ASP, "asp_profiles.csv", RUN_ID)
 # Bin points, for the overlay chart (Combine line over game line).
 BINS = pd.concat([COMBINE_TOP.assign(season=np.nan), pooled_top.drop(columns=[], errors="ignore")], ignore_index=True)
 BINS["speed"] = (BINS.bin + 0.5) * BIN
+# Sorted by key, so the file is the same row for row on every run (a tie in "acc" used to reorder it).
+BINS = BINS.sort_values(["nfl_id", "scope", "season", "bin", "acc"], ascending=[True, True, True, True, False],
+                        kind="mergesort", na_position="first")
 save_with_run(BINS[["nfl_id", "scope", "season", "bin", "speed", "acc"]], "asp_points.csv", RUN_ID)
 
 # ---------------------------------------------------------------------

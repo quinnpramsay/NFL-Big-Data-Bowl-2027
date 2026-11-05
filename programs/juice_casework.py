@@ -15,11 +15,12 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import rankdata
 import pandas as pd
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from juice_common import OUT, get_file, load_run_id, read_out, save_with_run  # noqa: E402
+from juice_common import OUT, get_file, load_run_id, read_out, save_with_run, section_rng, size_free  # noqa: E402
 
 RUN_ID = load_run_id()
 B = 2000
@@ -34,6 +35,10 @@ def out(text=""):
 
 
 def hdr(text):
+    """Section header. Also reseeds the shared generator from the section label, so adding or reordering
+    sections never moves another section's bootstrap draws."""
+    global rng
+    rng = section_rng("casework", text.split()[0])
     out("\n" + "=" * 78 + f"\n{text}\n" + "=" * 78)
 
 
@@ -78,8 +83,22 @@ def stack(*cols):
 
 
 def ranked(d, cols, by="pgm"):
-    """Within-group percentile ranks, so pooled groups compete on the same scale."""
-    return {c: d.groupby(by)[c].rank(pct=True).to_numpy() for c in cols}
+    """Within-group percentile ranks, so pooled groups compete on the same scale. Same values as pandas
+    groupby().rank(pct=True) (average ties, NaN left out), done in numpy because the bootstraps call it thousands
+    of times."""
+    g = d[by].to_numpy()
+    groups = [np.flatnonzero(g == u) for u in pd.unique(g)]
+    res = {}
+    for c in cols:
+        v = d[c].to_numpy(float)
+        r = np.full(len(v), np.nan)
+        for ix in groups:
+            vv = v[ix]
+            ok = np.isfinite(vv)
+            if ok.any():
+                r[ix[ok]] = rankdata(vv[ok]) / ok.sum()
+        res[c] = r
+    return res
 
 
 def rank_partial(d, x, y, controls=(), weights=None, reps=B):
@@ -117,12 +136,8 @@ def check(cid, claim, res, passed, note=""):
                    "verdict": "passes" if passed else "does not pass", "note": note})
 
 
-def size_free(df, col, by="pgm"):
-    o = pd.Series(np.nan, index=df.index)
-    for _, g in df.dropna(subset=[col, "combine_weight", "combine_height"]).groupby(by):
-        X = np.column_stack([np.ones(len(g)), g.combine_weight, g.combine_height])
-        o.loc[g.index] = g[col] - X @ np.linalg.lstsq(X, g[col], rcond=None)[0]
-    return o
+# size_free (residual on weight and height within position) lives in juice_common: groups under 10 players are
+# left blank, because a 3-parameter fit on 2-3 players is exact and leaves only rounding noise.
 
 
 def logistic(X, y, iters=50):
@@ -234,13 +249,16 @@ for k in (1, 3, 5, 10):
     out(f"  drop the {k:2d} most influential players{'':22s} {r_:+.3f}  n={len(keep)}")
 out("  most influential: " + ", ".join(f"{d1.display_name[i]} ({d1.nfl_position[i]})" for i in infl[:5]))
 # Permutation: shuffle Combine agility within group.
+# Shuffling A within group just permutes its within-group ranks, so the ranks are computed once.
 perm = []
-A_ = d1.A_trk_plus.to_numpy().copy()
+Rp = ranked(d1, ["A_trk_plus", "neg_forty", "g_agil_plus"])
+Cp = stack(Rp["neg_forty"], dummies(d1.pgm))
+grp_ix = [np.flatnonzero(d1.pgm.to_numpy() == u) for u in pd.unique(d1.pgm)]
 for _ in range(B):
-    sh = d1.groupby("pgm").A_trk_plus.transform(lambda s: s.sample(frac=1, random_state=int(rng.integers(1e9))).to_numpy())
-    dd = d1.assign(A_trk_plus=sh.to_numpy())
-    Rp = ranked(dd, ["A_trk_plus", "neg_forty", "g_agil_plus"])
-    perm.append(pcorr(Rp["A_trk_plus"], Rp["g_agil_plus"], stack(Rp["neg_forty"], dummies(dd.pgm))))
+    ra = Rp["A_trk_plus"].copy()
+    for ix in grp_ix:
+        ra[ix] = Rp["A_trk_plus"][rng.permutation(ix)]
+    perm.append(pcorr(ra, Rp["g_agil_plus"], Cp))
 p_perm = (np.sum(np.abs(perm) >= abs(base)) + 1) / (B + 1)
 out(f"  permutation p (agility shuffled within group, {B} draws): {p_perm:.4f}")
 
@@ -452,7 +470,8 @@ PR = pd.DataFrame(PR)
 if len(PR):
     # Players appear in several pairs, so resample players' pairs by bootstrap over pairs (approximate).
     w = PR.agile_wins_game.mean()
-    bw = [PR.agile_wins_game.sample(frac=1, replace=True, random_state=int(rng.integers(1e9))).mean() for _ in range(B)]
+    wv = PR.agile_wins_game.to_numpy(float)
+    bw = wv[rng.integers(0, len(wv), (B, len(wv)))].mean(axis=1)
     out(f"  pairs {len(PR)} (players appear in several pairs, so the interval is approximate)")
     out(f"  more agile player has higher game agility: {w:.0%} [{np.percentile(bw, 2.5):.0%}, {np.percentile(bw, 97.5):.0%}]"
         f" (50% = coin flip)")

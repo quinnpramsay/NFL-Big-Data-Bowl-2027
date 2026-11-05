@@ -25,7 +25,7 @@ from scipy import stats
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from juice_common import OUT, get_file, load_run_id, read_out, save_with_run  # noqa: E402
+from juice_common import OUT, get_file, load_run_id, read_out, save_with_run, section_rng, size_free  # noqa: E402
 
 RUN_ID = load_run_id()
 B = 1000
@@ -40,6 +40,10 @@ def out(text=""):
 
 
 def hdr(text):
+    """Section header. Also reseeds the shared generator from the section label, so adding or reordering
+    sections never moves another section's bootstrap draws."""
+    global rng
+    rng = section_rng("transfer", text.split()[0])
     out("\n" + "=" * 78 + f"\n{text}\n" + "=" * 78)
 
 
@@ -545,14 +549,8 @@ pl_draft = pl_draft[pl_draft.season == pl_draft.draft_year].sort_values(["nfl_id
 TAKE_ROWS = []
 
 
-def size_free(df, col):
-    """Residual of col on weight and height within position: the same size-free terms as Game Juice+ and the
-    size-adjusted Combine pieces. Without this the size-adjusted Combine predictor is graded on a size-loaded target."""
-    out = pd.Series(np.nan, index=df.index)
-    for _, g in df.dropna(subset=[col, "combine_weight", "combine_height"]).groupby("pgm"):
-        X = np.column_stack([np.ones(len(g)), g.combine_weight, g.combine_height])
-        out.loc[g.index] = g[col] - X @ np.linalg.lstsq(X, g[col], rcond=None)[0]
-    return out
+# size_free (residual on weight and height within position) lives in juice_common: groups under 10 players are
+# left blank, because a 3-parameter fit on 2-3 players is exact and leaves only rounding noise.
 
 
 def loco_r2(df, xcols, ycol="target"):
@@ -582,6 +580,7 @@ for mcol, mlabel, ccol in TAKE_SPECS:
         continue
     # Size-free within position (this also centers it), so the models compare players inside a group.
     base["target"] = size_free(base, "target")
+    base = base.dropna(subset=["target"])   # position groups too small to size-adjust are left out
     for c in (ccol, "neg_forty"):
         base[c] = base.groupby("pgm")[c].transform(lambda s: (s - s.mean()) / s.std())
     r2_c, n_c = loco_r2(base, [ccol, "neg_forty"])
@@ -589,6 +588,7 @@ for mcol, mlabel, ccol in TAKE_SPECS:
         early = d[d.k < k].groupby("nfl_id")[mcol].quantile(0.95).rename("early")
         b2 = base.join(early).dropna()
         b2["early"] = size_free(b2, "early")
+        b2 = b2.dropna(subset=["early"])
         r2_g, _ = loco_r2(b2, ["early"])
         r2_b, _ = loco_r2(b2, ["early", ccol, "neg_forty"])
         TAKE_ROWS.append({"metric": mlabel, "k": k, "r2_game_only": r2_g, "r2_combine_only": r2_c,
@@ -609,7 +609,7 @@ hdr("F. UNUSED JUICE: DO PLAYERS MOVING BELOW THEIR COMBINE CATCH UP IN YEAR 2? 
 out("Season means of each play metric (50+ plays per season), size-free and standardized within group and season.")
 out("Test: year-2 score on year-1 score plus the Combine piece. A positive Combine coefficient means the Combine")
 out("predicts year 2 beyond year 1 (catch-up). Regression to the mean is handled by keeping year 1 in the model.")
-UJ_ROWS = []
+UJ_ROWS, UJ_PLAYERS = [], []
 for mcol, mlabel, ccol in TAKE_SPECS:
     s = PLM2.dropna(subset=[mcol]).groupby(["nfl_id", "season"])[mcol].agg(["mean", "count"]).reset_index()
     s = s[s["count"] >= 50].merge(P[["nfl_id", "pgm", "draft_year", ccol, "combine_weight", "combine_height"]],
@@ -632,6 +632,8 @@ for mcol, mlabel, ccol in TAKE_SPECS:
         bs.append(np.linalg.lstsq(X[i], d.y2.to_numpy()[i], rcond=None)[0][2])
     lo, hi = np.percentile(bs, [2.5, 97.5])
     flagged = d[d.gap >= 1.0]
+    UJ_PLAYERS.append(d.reset_index()[["nfl_id", "pgm", "y1", "y2", "c", "gap"]].assign(metric=mlabel,
+                                                                                         flagged=d.gap.values >= 1.0))
     UJ_ROWS.append({"metric": mlabel, "n": len(d), "beta_combine": beta[2], "ci_low": lo, "ci_high": hi,
                     "beta_year1": beta[1], "flagged_unused": len(flagged),
                     "flagged_mean_change": (flagged.y2 - flagged.y1).mean() if len(flagged) else np.nan,
@@ -640,6 +642,8 @@ for mcol, mlabel, ccol in TAKE_SPECS:
         f"{len(flagged)} flagged as unused juice")
 UJ = pd.DataFrame(UJ_ROWS)
 save(UJ, "unused_juice.csv")
+if UJ_PLAYERS:   # one row per player and metric, for the year-2 slope chart
+    save(pd.concat(UJ_PLAYERS, ignore_index=True).sort_values(["metric", "nfl_id"]), "unused_juice_players.csv")
 
 # =====================================================================
 hdr("G. SMALLER CHECKS (audit item 9)")
