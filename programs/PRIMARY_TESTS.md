@@ -123,3 +123,27 @@ and (b) holding (a).
   (every frame after the snap), the setting behind P1-P5 and S1-S4 since run ffa63e. Reason: R4 was not shown
   (+0.114 vs +0.139) and P1 weakened (+0.147 vs +0.172). The option stays in `juice.py` as `GAME_AGIL_WINDOW=prethrow`.
   R4 is not scored on runs without the pre-throw window. The other fixes in the bug-fix pass stay.
+
+- **November 5, 2026: R2's within-player link is explained by cushion (exploratory, found after R2 was scored).**
+  Run 20261105T200039Z-a2540c, same WR plays as `juice_routes.py` section C (68 WRs with 50+ routes). Found while
+  testing a model of expected movement from play context (gradient boosting, folds by player). That test and its
+  scripts were on a branch that has since been deleted, so these numbers cannot be rerun from this repo.
+  Within player, yards of separation per SD of cut speed (cluster bootstrap over players):
+
+  | Adjustment of cut speed | Outcome: route-adjusted separation | Outcome: separation over expected |
+  |---|---|---|
+  | Cells: route x man/zone x time to throw (R2 as scored) | +0.097 [+0.072, +0.120] | +0.004 [-0.019, +0.030] |
+  | Cell features plus cushion and lined-up position | +0.010 [-0.019, +0.036] | +0.005 [-0.021, +0.028] |
+  | Full play context (14 features) | -0.003 [-0.029, +0.023] | +0.004 [-0.023, +0.029] |
+  | Full play context minus cushion | +0.063 [+0.037, +0.087] | -0.012 [-0.035, +0.012] |
+
+  Dropping any other single feature leaves the link at about 0. Cushion is the one that matters: when the defender
+  plays off, the same receiver both cuts faster and is more open at the throw, so the play-by-play link measures the
+  coverage, not the receiver. R2 (b) stays scored as passed, but it should not be described as cut speed buying
+  separation play by play.
+  The player-level link survives, smaller: Spearman of player mean cut speed with separation is +0.33 with the cell
+  adjustment and +0.13 to +0.21 with full context (any one feature left out); the two-piece movement score (cut speed
+  and top speed) is +0.22 [-0.01, +0.44] with full context vs +0.34 with cells. Cushion is partly the defense's response to a
+  receiver's speed, so adjusting player means for it may remove some real skill; the within-player test is the
+  cleaner one. Claims about cut speed and separation are player-level only. R3 is unaffected (its b link is
+  estimated on player means).
