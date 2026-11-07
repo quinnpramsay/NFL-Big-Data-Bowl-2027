@@ -1,0 +1,370 @@
+Folder: /Users/quinnramsay/.cache/kagglehub/competitions/nfl-big-data-bowl-2027/nfl-big-data-bowl-2027
+Files: 9
+
+=== combine_results.csv  (0.0 MB)
+draft_year [int64], nfl_id [int64], combine_position [object], combine_height [float64], combine_weight [int64], hand_size [float64], arm_length [float64], wing_span [float64], ten_yd_split [float64], forty [float64], vertical [float64], broad_jump [int64], three_cone [float64], short_shuttle [float64], bench_reps [float64], ngs_athleticism_score [int64], ngs_college_production_score [float64], ngs_final_score [float64]
+ draft_year  nfl_id combine_position  combine_height  combine_weight  hand_size  arm_length  wing_span  ten_yd_split  forty  vertical  broad_jump  three_cone  short_shuttle  bench_reps  ngs_athleticism_score  ngs_college_production_score  ngs_final_score
+       2023   56040               TE          77.875             245      10.00      32.250     79.750          1.60   4.84      38.5         125         NaN            NaN         NaN                     60                           NaN              NaN
+       2023   56010               DB          70.625             191       8.75      29.625     72.250          1.58   4.59      33.5         116         NaN            NaN        23.0                     60                          77.0             74.0
+       2023   56085               TE          79.375             255      10.25      34.000     83.125          1.57   4.55      40.0         128        6.87           4.12        23.0                     97                          65.0             79.0
+
+=== combine_tracking.csv  (83.8 MB)
+draft_year [int64], event_id [object], nfl_id [int64], entity_type [object], time [object], drill_type [object], drill_name [object], attempt [int64], x [float64], y [float64], s [float64], a [float64], dis [float64], dir [float64]
+ draft_year                         event_id  nfl_id entity_type                    time      drill_type                     drill_name  attempt         x         y        s        a      dis        dir
+       2025 20250302100900_1740941802777_000   58286      PLAYER 2025-03-02T18:56:38.200 SKILL_DRILLS_OL OL_PULL_DRILL_FOLD_BLOCK_RIGHT        4 44.785924 28.285528 0.220828 0.682443 0.011085 250.278576
+       2025 20250302100900_1740941802777_000   58286      PLAYER 2025-03-02T18:56:38.300 SKILL_DRILLS_OL OL_PULL_DRILL_FOLD_BLOCK_RIGHT        4 44.723780 28.297391 0.332931 0.619551 0.003864 257.319206
+       2025 20250302100900_1740941802777_000   58286      PLAYER 2025-03-02T18:56:38.400 SKILL_DRILLS_OL OL_PULL_DRILL_FOLD_BLOCK_RIGHT        4 44.632680 28.279528 0.481838 0.596455 0.008305 253.176813
+
+=== game_tracking_2023.csv  (335.5 MB)
+game_id [int64], play_id [int64], nfl_id [int64], time [object], x [float64], y [float64], s [int64], a [int64], dis [int64], o [float64], dir [float64], event [float64]
+   game_id  play_id  nfl_id                    time     x     y  s  a  dis      o    dir  event
+2024010707      570   56450 2024-01-07T21:46:07.700 42.17 25.29  0  0    0 290.97 213.26    NaN
+2024010707      570   56450 2024-01-07T21:46:07.800 42.17 25.29  0  0    0 290.97 210.36    NaN
+2024010707      570   56450 2024-01-07T21:46:07.900 42.18 25.29  0  0    0 290.97 205.45    NaN
+
+=== game_tracking_2024.csv  (718.0 MB)
+game_id [int64], play_id [int64], nfl_id [int64], time [object], x [float64], y [float64], s [float64], a [float64], dis [float64], o [float64], dir [float64], event [float64]
+   game_id  play_id  nfl_id                    time     x     y    s    a  dis     o    dir  event
+2024080952     3379   57367 2024-08-10T01:30:31.800 87.09 22.52 0.28 0.11 0.03 98.51 126.08    NaN
+2024080952     3379   57367 2024-08-10T01:30:31.900 87.11 22.51 0.24 0.18 0.02 97.33 125.81    NaN
+2024080952     3379   57367 2024-08-10T01:30:32.000 87.12 22.50 0.17 0.24 0.01 96.65 124.99    NaN
+
+=== game_tracking_2025.csv  (1022.6 MB)
+game_id [int64], play_id [int64], nfl_id [int64], time [object], x [float64], y [float64], s [float64], a [float64], dis [float64], o [float64], dir [float64], event [float64]
+   game_id  play_id  nfl_id                    time     x     y    s    a  dis      o   dir  event
+2025090701      290   57347 2025-09-07T17:09:39.500 83.06 32.06 0.10 0.06 0.04   8.00 18.86    NaN
+2025090701      290   57347 2025-09-07T17:09:39.600 83.07 32.07 0.10 0.07 0.02   2.61 21.95    NaN
+2025090701      290   57347 2025-09-07T17:09:39.700 83.06 32.06 0.07 0.05 0.02 357.42 16.24    NaN
+
+=== games.csv  (0.0 MB)
+game_id [int64], game_key [int64], season [int64], season_type [object], week [int64], home_team_abbr [object], visitor_team_abbr [object]
+   game_id  game_key  season season_type  week home_team_abbr visitor_team_abbr
+2023090700     59173    2023         REG     1             KC               DET
+2023091000     59174    2023         REG     1            ATL               CAR
+2023091001     59175    2023         REG     1            BAL               HOU
+
+=== player_career_successes.csv  (0.0 MB)
+nfl_id [int64], career_offensive_snaps [int64], career_defensive_snaps [int64], career_special_teams_snaps [int64], career_games_active [int64], career_games_started [int64], ap_all_pro_1st_team [int64], ap_all_pro_2nd_team [int64], pro_bowl_original_ballot [int64]
+ nfl_id  career_offensive_snaps  career_defensive_snaps  career_special_teams_snaps  career_games_active  career_games_started  ap_all_pro_1st_team  ap_all_pro_2nd_team  pro_bowl_original_ballot
+  55867                       0                    1884                          92                   51                    44                    1                    0                         1
+  55870                    2802                       0                         169                   47                    43                    0                    0                         0
+  55874                    3222                       0                         167                   51                    49                    0                    1                         0
+
+=== player_play.csv  (146.9 MB)
+game_id [int64], play_id [int64], team_abbr [object], nfl_id [int64], lined_up_position [object], play_description [object], quarter [int64], down [int64], yards_to_go [int64], possession_team [object], yardline_side [object], yardline_number [int64], game_clock [object], pre_snap_home_score [int64], pre_snap_visitor_score [int64], play_direction [object], pre_snap_home_team_win_probability [float64], pre_snap_visitor_team_win_probability [float64], home_team_win_probability_added [float64], visitor_team_win_probility_added [float64], expected_points_added [float64], expected_points [float64], offense_formation [object], receiver_alignment [object], pass_result [object], pass_length [float64], play_nullified_by_penalty [object], penalty_yards [float64], pre_penalty_yards_gained [int64], yards_gained [int64], team_coverage_man_zone [object], team_coverage_type [object], in_motion_at_ball_snap [object], target [bool], rec_yards [float64], rush_yards [float64], yards_after_catch [float64], fumble [float64], fumble_lost [float64], route_ran [float64], separation_at_pass_forward [float64], cushion [float64], expected_yards_after_catch [float64], dropback_duration [float64], extended_sack_allowed [float64], pass_rushers_encountered [float64], peak_pressure_probability_allowed [float64], pressure_allowed [object], sack_allowed [float64], time_to_pressure_allowed [float64], quick_pressure [float64], unblocked_pressure [object], blitzing [object], player_get_off [float64], sack [float64], tackle [float64], assist [float64], caused_forced_fumble [float64], recovered_fumble [float64], tackle_for_loss [float64], time_to_pressure [float64], time_to_qb_hurry [float64], coverage_assignment [object], coverage_assignment_at_snap [object]
+   game_id  play_id team_abbr  nfl_id lined_up_position                                                                                                        play_description  quarter  down  yards_to_go possession_team yardline_side  yardline_number game_clock  pre_snap_home_score  pre_snap_visitor_score play_direction  pre_snap_home_team_win_probability  pre_snap_visitor_team_win_probability  home_team_win_probability_added  visitor_team_win_probility_added  expected_points_added  expected_points offense_formation receiver_alignment pass_result  pass_length play_nullified_by_penalty  penalty_yards  pre_penalty_yards_gained  yards_gained team_coverage_man_zone team_coverage_type in_motion_at_ball_snap  target  rec_yards  rush_yards  yards_after_catch  fumble  fumble_lost  route_ran  separation_at_pass_forward  cushion  expected_yards_after_catch  dropback_duration  extended_sack_allowed  pass_rushers_encountered  peak_pressure_probability_allowed pressure_allowed  sack_allowed  time_to_pressure_allowed  quick_pressure unblocked_pressure blitzing  player_get_off  sack  tackle  assist  caused_forced_fumble  recovered_fumble  tackle_for_loss  time_to_pressure  time_to_qb_hurry coverage_assignment coverage_assignment_at_snap
+2025111610     2279       BAL   57183                 T                                                      (8:42) (Shotgun) L.Jackson pass incomplete deep left to D.Hopkins.        3     1           10             BAL           BAL               45      08:42                   16                      10          right                            0.488722                               0.511278                         0.030960                         -0.030960              -0.510282         2.716763           SHOTGUN                3x1           I         22.0                         N            NaN                         0             0           MAN_COVERAGE        COVER_1_MAN                  False   False        NaN         NaN                NaN     NaN          NaN        NaN                         NaN      NaN                         NaN              2.079                    0.0                       1.0                           0.153333            False           0.0                       NaN             NaN                NaN    False             NaN   NaN     NaN     NaN                   NaN               NaN              NaN               NaN               NaN                 NaN                         NaN
+2026011701     1626        SF   58248     INTERIOR_LINE                                       (3:48) (Shotgun) K.Walker left end to SEA 28 for 5 yards (S.Okuayinonu; M.Sigle).        2     2            7             SEA           SEA               23      03:48                   17                       6           left                            0.925716                               0.074284                        -0.002361                          0.002361              -0.048963         0.357381           SHOTGUN                2x1         NaN          NaN                         N            NaN                         5             5          ZONE_COVERAGE       COVER_2_ZONE                    NaN   False        NaN         NaN                NaN     NaN          NaN        NaN                         NaN      NaN                         NaN                NaN                    NaN                       NaN                                NaN              NaN           NaN                       NaN             NaN                NaN      NaN             NaN   NaN     NaN     NaN                   NaN               NaN              NaN               NaN               NaN                 NaN                         NaN
+2025101900     2838       LAR   57140              EDGE (7:01) C.Van Lanen reported in as eligible.  T.Lawrence scrambles left tackle pushed ob at LA 30 for 14 yards (K.Curl).        3     2            2             JAX           LAR               44      07:01                    0                      21           left                            0.051319                               0.948681                         0.005685                         -0.005685               0.927307         3.313706        SINGLEBACK                3x1           R          NaN                         N            NaN                        14            14          ZONE_COVERAGE       COVER_3_ZONE                    NaN   False        NaN         NaN                NaN     NaN          NaN        NaN                         NaN      NaN                         NaN                NaN                    NaN                       NaN                                NaN              NaN           NaN                       NaN             NaN              False     True           0.906   0.0     NaN     NaN                   NaN               NaN              NaN               NaN               NaN       NO_ASSIGNMENT               NO_ASSIGNMENT
+
+=== players.csv  (0.0 MB)
+nfl_id [int64], display_name [object], draft_year [int64], nfl_position [object], birth_date [object], college_name [object], college_conference [object], draft_round [int64], draft_pick_within_round [int64], draft_overall_pick [int64]
+ nfl_id   display_name  draft_year nfl_position birth_date college_name      college_conference  draft_round  draft_pick_within_round  draft_overall_pick
+  55867  Will Anderson        2023           DE 2001-09-02      Alabama Southeastern Conference            1                        3                   3
+  55870  Paris Johnson        2023            T 2001-07-31   Ohio State      Big Ten Conference            1                        6                   6
+  55874 Darnell Wright        2023            T 2001-08-10    Tennessee Southeastern Conference            1                       10                  10
+
+Rows in combine_results.csv: 510
+Rows in games.csv: 1002
+Rows in player_career_successes.csv: 510
+Rows in players.csv: 510
+
+Rows in player_play.csv: 314197
+
+team_abbr (33 values, 100% filled)
+team_abbr
+HOU    17362
+ARI    14014
+PIT    12663
+CHI    12642
+NE     11862
+TEN    11798
+LAC    11164
+NYG    10829
+GB     10499
+TB     10447
+IND    10310
+DAL    10292
+JAX    10180
+SEA    10105
+SF      9873
+BUF     9859
+LA      9452
+PHI     9112
+CLE     8721
+LV      8669
+WAS     8462
+KC      8333
+DET     8333
+CIN     8161
+NO      8004
+ATL     7728
+CAR     7171
+MIA     7035
+LAR     6965
+NYJ     6583
+MIN     5895
+DEN     5881
+BAL     5793
+
+lined_up_position (17 values, 100% filled)
+lined_up_position
+G                48507
+T                42851
+EDGE             38398
+CB               35017
+INTERIOR_LINE    30301
+WR               28077
+HIGH_SAFETY      25608
+SLOT_WR          18755
+C                14959
+SLOT_CB          14537
+TE                6803
+OLB               6362
+MLB               1824
+RB                 320
+BOX_SAFETY         266
+FB                 228
+EXTRA_OL             1
+
+possession_team (33 values, 100% filled)
+possession_team
+HOU    14686
+PIT    13608
+SEA    13587
+DAL    13091
+TEN    12515
+CHI    12077
+NE     12043
+LV     11361
+ARI    11263
+BUF    10299
+CLE    10026
+TB      9923
+NO      9922
+LAC     9907
+JAX     9497
+SF      9374
+NYG     9108
+IND     8843
+MIN     8348
+ATL     8253
+GB      8193
+MIA     8176
+PHI     8025
+CAR     7940
+CIN     7896
+DET     7825
+DEN     7781
+WAS     7510
+BAL     7195
+KC      7139
+NYJ     6888
+LA      6535
+LAR     5363
+
+yardline_side (33 values, 99% filled)
+yardline_side
+HOU    12713
+ARI    12130
+TEN    11556
+CHI    11329
+PIT    11219
+NE     11035
+SEA    10480
+IND    10468
+JAX    10169
+LAC    10045
+DAL     9862
+TB      9744
+SF      9686
+BUF     9652
+GB      9627
+NYG     9620
+LV      9397
+CLE     9239
+WAS     9057
+PHI     9010
+NO      8893
+DET     8803
+CIN     8690
+KC      8546
+CAR     8467
+ATL     8457
+NYJ     8203
+BAL     8025
+MIN     7881
+DEN     7690
+MIA     7623
+LA      6717
+LAR     6062
+
+play_direction (2 values, 100% filled)
+play_direction
+left     157872
+right    156275
+
+offense_formation (7 values, 98% filled)
+offense_formation
+SHOTGUN       182052
+SINGLEBACK     69220
+EMPTY          22754
+I_FORM         16406
+PISTOL         14880
+JUMBO           2708
+WILDCAT          842
+
+receiver_alignment (15 values, 99% filled)
+receiver_alignment
+2x2    130055
+3x1    126352
+2x1     27989
+3x2     21103
+4x1      1974
+1x1      1100
+0x0       643
+3x0       173
+4x0       136
+2x0        46
+3x3        14
+5x2         6
+4x3         4
+4x2         4
+1x0         1
+
+pass_result (5 values, 67% filled)
+pass_result
+C     115903
+I      65187
+S      13888
+R      11326
+IN      4257
+
+play_nullified_by_penalty (2 values, 100% filled)
+play_nullified_by_penalty
+N    301707
+Y     12490
+
+team_coverage_man_zone (2 values, 88% filled)
+team_coverage_man_zone
+ZONE_COVERAGE    197851
+MAN_COVERAGE      77427
+
+team_coverage_type (8 values, 88% filled)
+team_coverage_type
+COVER_3_ZONE    97938
+COVER_1_MAN     56381
+COVER_4_ZONE    43685
+COVER_2_ZONE    32999
+COVER_6_ZONE    22596
+COVER_0_MAN     18179
+COVER_2_MAN      2867
+PREVENT           633
+
+in_motion_at_ball_snap (2 values, 50% filled)
+in_motion_at_ball_snap
+False    152549
+True       3417
+
+route_ran (12 values, 17% filled)
+route_ran
+GO        9715
+HITCH     8816
+CROSS     6756
+IN        5582
+OUT       5179
+POST      4865
+CORNER    4232
+SLANT     3413
+FLAT      3287
+SCREEN    1321
+WHEEL       83
+ANGLE       59
+
+pressure_allowed (2 values, 19% filled)
+pressure_allowed
+False    55829
+True      4974
+
+quick_pressure (2 values, 1% filled)
+quick_pressure
+False    2546
+True     1217
+
+unblocked_pressure (2 values, 28% filled)
+unblocked_pressure
+False    86342
+True       496
+
+blitzing (2 values, 64% filled)
+blitzing
+False    163754
+True      36973
+
+recovered_fumble (2 values, 1% filled)
+recovered_fumble
+False    2108
+True      106
+
+tackle_for_loss (2 values, 4% filled)
+tackle_for_loss
+False    10915
+True       981
+
+coverage_assignment (20 values, 23% filled)
+coverage_assignment
+NO_ASSIGNMENT             29442
+MAN                       10745
+CURL_FLAT_LEFT             2988
+DEEP_THIRD_RIGHT           2859
+CURL_FLAT_RIGHT            2781
+DEEP_THIRD_MIDDLE          2655
+DEEP_THIRD_LEFT            2065
+QUARTERS_OUTSIDE_RIGHT     2042
+QUARTERS_INSIDE_LEFT       2036
+QUARTERS_INSIDE_RIGHT      1771
+FLAT_RIGHT                 1718
+DEEP_HALF_LEFT             1692
+DEEP_HALF_RIGHT            1481
+DEEP_FREE                  1469
+HOOK_CURL_LEFT             1403
+FLAT_LEFT                  1361
+HOOK_CURL_RIGHT            1358
+QUARTERS_OUTSIDE_LEFT      1335
+HOLE                       1274
+PREVENT                     177
+
+coverage_assignment_at_snap (20 values, 23% filled)
+coverage_assignment_at_snap
+NO_ASSIGNMENT             29153
+MAN                       10744
+CURL_FLAT_LEFT             3098
+CURL_FLAT_RIGHT            2929
+DEEP_THIRD_RIGHT           2857
+DEEP_THIRD_MIDDLE          2650
+QUARTERS_INSIDE_LEFT       2355
+QUARTERS_OUTSIDE_RIGHT     2301
+QUARTERS_INSIDE_RIGHT      2132
+DEEP_THIRD_LEFT            2011
+DEEP_HALF_LEFT             1563
+FLAT_RIGHT                 1546
+QUARTERS_OUTSIDE_LEFT      1418
+DEEP_HALF_RIGHT            1340
+DEEP_FREE                  1297
+FLAT_LEFT                  1172
+HOOK_CURL_RIGHT            1151
+HOOK_CURL_LEFT             1151
+HOLE                       1071
+PREVENT                     186
+
+=== player_career_successes.csv
+                            count          mean         std      min       25%      50%       75%      max
+nfl_id                      510.0  57331.319608  979.506689  55867.0  56273.50  57290.0  58302.75  59278.0
+career_offensive_snaps      510.0    327.415686  632.400084      0.0      0.00      0.0    361.75   3303.0
+career_defensive_snaps      510.0    234.307843  492.121894      0.0      0.00      0.0    220.50   2666.0
+career_special_teams_snaps  510.0    113.503922  156.194148      0.0      5.00     53.0    147.75    957.0
+career_games_active         510.0     21.721569   16.285063      0.0      6.25     17.0     34.00     51.0
+career_games_started        510.0      7.852941   11.466015      0.0      0.00      2.0     12.00     50.0
+ap_all_pro_1st_team         510.0      0.011765    0.107931      0.0      0.00      0.0      0.00      1.0
+ap_all_pro_2nd_team         510.0      0.003922    0.062561      0.0      0.00      0.0      0.00      1.0
+pro_bowl_original_ballot    510.0      0.027451    0.196310      0.0      0.00      0.0      0.00      2.0
