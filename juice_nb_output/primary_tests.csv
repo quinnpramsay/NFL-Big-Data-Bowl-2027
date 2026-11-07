@@ -1,6 +1,0 @@
-run_id,test,claim,estimate,ci_low,ci_high,n,verdict
-20261105T200039Z-a2540c,P1,Tracked agility adds to Game Juice+ beyond the 40 and RAS-style (pooled),0.1716383888,0.03889661044,0.2986023774,198,supported
-20261105T200039Z-a2540c,P2,"Tracked burst (yard 2-10) vs NFL get-off, DL + EDGE",0.14679703,-0.1116638724,0.3780719837,68,not shown
-20261105T200039Z-a2540c,P3,WR: tracked agility -> separation at throw (mixed model transfer),-0.05418648646,-0.3210948503,0.2127218774,72,not shown
-20261105T200039Z-a2540c,P4,Snap takeover for top speed: k* = 10,,,,163,see table
-20261105T200039Z-a2540c,P5,A-S top gear v0: Combine vs games (pooled ranks),0.2240606739,0.1278479325,0.3160955913,392,supported

@@ -1,5 +1,0 @@
-run_id,id,claim,estimate,ci_low,ci_high,n,verdict,note
-20261105T200039Z-a2540c,S1,WR+DB: Combine agility -> game agility beyond the 40,0.3281842143,0.1499015521,0.4833555884,125,does not pass,"A minus 40 = +0.187 [-0.089, +0.438]"
-20261105T200039Z-a2540c,S3,"OL: game burst -> peak pressure on non-burst dropbacks, holding play mix",0.2115407387,0.004030504553,0.4137668445,59,passes,
-20261105T200039Z-a2540c,S4,OL: indirect effect Combine burst -> game burst -> peak pressure,0.08629071153,0.00433441937,0.1990648515,59,passes,
-20261105T200039Z-a2540c,S2,S1 survives selection weights and every snap floor (mean),0.3389335496,0.1470551295,0.4934227866,125,passes,"floor estimates (mean): +0.30, +0.29, +0.28, +0.25, +0.34"

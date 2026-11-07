@@ -1,40 +1,26 @@
-**Submission write-up: [submission/README.md](submission/README.md).** All the work behind it is in [submission/Juice+_work.ipynb](submission/Juice+_work.ipynb).
+# Juice+: Finding the Extra Gear in the "Underwear Olympics"
 
-# Previous Winners/Qualifiers
+NFL Big Data Bowl 2027 entry. Juice+ scores how a prospect moves in Combine drills on a scale where 100 is average for his position, then rebuilds the same score from NFL game tracking to see if the juice carries over.
 
-Looking back on previous Big Data bowl completitions the one large trend that stands out is the people create their own new metrics within the sport instead of just building a machine learning pipeline. They also used context specific measurements, ex. 100 out of 200 tackles versus 40 out of 50 tackles. They were also incredibly digestible but also differentiated from the crowd. 
+## Start here
 
-# Initial Theories
+- **Write-up:** [submission/README.md](submission/README.md)
+- **All the work:** [submission/Juice+_work.ipynb](submission/Juice+_work.ipynb). It runs the full pipeline, draws every figure and table in the write-up, and rechecks every number it quotes.
 
-- Can we identify which Combine movement characteristics translate into effective movement in the trenches, where athletic ability must be applied under physical constraints? - how do you define effective movement within blocking. 
-- Does Combine-measured lateral agility and acceleration predict a defensive lineman's ability to recover and generate pressure after his initial pass-rush movement is disrupted? - identifying player success versus opponent and scheme.
-- Coverage Recovery Index: How well a DB recovers from a break in a wide receivers route and how well that can be derived from combine data in reaction time - the biggest hurdle will be identifying route breaks in NFL games. 
-- Can Combine movement data identify tight ends who are effective in both receiving and blocking situations? - smaller sample size and reliably measuring blocking effectiveness may be difficult.
+## Run it
 
-# Data
-Uses kaggle api call to import all the data from kaggle. must pip install --upgrade kagglehub in terminal before running data.py script. 
+1. Download the competition data from Kaggle.
+2. Open `submission/Juice+_work.ipynb`. If your data is not found on its own, set `DATA` in the first cell to the folder that holds `players.csv`.
+3. Run all cells. The first run takes about 20 minutes. Later runs reuse the saved outputs.
 
-# Notebooks
-juice+ = thomas current version
-juice_plus = quinn current version
+Needs Python 3 with numpy, pandas, scipy, scikit-learn, statsmodels, matplotlib and Pillow.
 
-# Pipeline (current)
+## What is in this repo
 
-The one pipeline is in `programs/`. Run from the repo root, in this order:
+| Folder | What it holds |
+|---|---|
+| `submission/` | The write-up, the work notebook and the figures |
+| `programs/` | The Juice+ pipeline as plain scripts (the same code the work notebook carries in Appendix B) |
+| `forward_test/` | Our 2026 receiver predictions, saved before the 2026 season with a checksum. Score them after the season with `python3 programs/juice_forward.py --score` |
 
-```
-python3 programs/juice.py            # Combine Juice+ and Game Juice+ (about 1 min with the cached play table)
-python3 programs/juice_physics.py    # acceleration-speed profiles, Combine and games; preseason counts (about 15 min first time, cached after)
-python3 programs/juice_transfer.py   # the chain, what tracking adds, mixed models, snap takeover, tiers, primary tests
-python3 programs/juice_predictive.py # snaps, football results raw and size-free vs NGS, RAS-style, the 40
-python3 programs/juice_figures.py    # six figures for the writeup
-```
-
-Every table in `juice_nb_output/` carries the run ID that `juice.py` wrote to `run_manifest.json`. The later scripts
-refuse to mix runs, so every number in the writeup traces to one run. Main read: `juice_nb_output/transfer_report.txt`. Draft writeup: `notebooks/juice_plus_writeup.ipynb` (its last
-cell rechecks every quoted number against the run).
-Primary tests are listed in `programs/PRIMARY_TESTS.md`; everything else is exploratory.
-
-Superseded (kept for history, do not quote numbers from them): `juice.py` and `outcome.py` at the repo root,
-`programs/outcome.py` (replaced by `juice_transfer.py`), `Juice+.ipynb` (older logic, see audit item 7), and the
-`juice_full_output/` and `juice_experiment_output/` folders.
+Earlier versions, test runs and research notes are on the `Testing` branch.
