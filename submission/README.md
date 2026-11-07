@@ -27,8 +27,8 @@ The sample is 270 rookies from the 2023 to 2025 draft classes with both a Combin
 1. **Use Juice+ as a red flag and a green flag, not a ranking.** Only **1 of 39 players (3%)** with Juice+ under 90 at the Combine became elite movers in games. **20 of 61 (33%)** players with a Juice+ of 110 or more at the Combine were also elite in games, more than double the **15%** rate of players between 90 and 110. Inside that middle tier the score barely orders players (ρ = 0.07).
 2. **Most stars had juice.** **8 of 9** Pro Bowl or All-Pro players had a Juice+ over 100 at the Combine, Brian Branch being the one under with 95 at the Combine and 107 in games.
 3. **Find late-round athletes the board misses.** Late-round picks at 110+ points finished in the top half of game movement **4 of 7 times (57%)**, against **37%** for other late picks.
-4. **Juice+ spots agile players a stopwatch can't.** The tracking data component of Juice+ measures agility that stopwatch measuring cannot. Agility tracking predicts how hard WR and DB cut in games, even among players with the same 40 time (partial ρ = **+0.33**).
-5. **Juice+ flags who will grow in year 2.** WR and DB whose Juice+ agility outran their rookie play improved by **+0.71 SD** in year 2, while everyone else slipped **−0.48 SD**.
+4. **Juice+ spots agile players the stopwatch misses.** Its tracked agility predicts how hard WR and DB cut in games, even among players with the same 40 time and RAS-style score (partial ρ = **+0.33**).
+5. **Juice+ flags who will grow in year 2.** WR and DB whose Juice+ tracked agility outran their rookie play improved by **+0.71 SD** in year 2, while everyone else slipped **−0.48 SD**.
 
 ## 1. What Juice+ measures
 
@@ -86,11 +86,11 @@ For a draft room, tiers are the useful view (Figure 4).
 
 A 40 time can't measure **change of direction**. Juice+ can, because its agility piece reads speed and braking inside each position's drills.
 
-For WR and DB (Figure 5), Juice+ agility predicts game agility at partial ρ = **+0.33** [0.15, 0.49] (n = 125 players), even among players with the same 40 time. It holds at +0.33 to +0.35 after also accounting for draft pick, play count or size (shuffle test p < 0.001). Across every group with agility, the piece improves Juice+'s prediction of overall Game Juice+ (partial ρ = +0.17 [0.05, 0.30]).
+For WR and DB (Figure 5), Juice+'s tracked agility predicts game agility at partial ρ = **+0.33** [0.15, 0.49] (n = 125 players), even among players with the same 40 time. It holds at +0.33 to +0.35 after also accounting for RAS-style score, draft pick, play count or size (shuffle test p < 0.001). Across every group with agility, the piece improves Juice+'s prediction of overall Game Juice+ (partial ρ = +0.17 [0.05, 0.30]).
 
 ![Figure 5](figures/fig5.png)
 
-**It also predicts growth.** Holding a player's rookie game agility fixed, his Juice+ agility still predicts his year-2 game agility (partial ρ = **+0.34** [0.12, 0.54], n = 63 players). Table 1 lists the 16 WR and DB whose Combine agility ran 1+ SD ahead of their rookie play (year-2 change: **+0.71 SD**, vs. **−0.48 SD** for everyone else).
+**It also predicts growth.** Holding a player's rookie game agility fixed, his Juice+ tracked agility still predicts his year-2 game agility (partial ρ = **+0.34** [0.12, 0.54], n = 63 players). Table 1 lists the 16 WR and DB whose Combine agility ran 1+ SD ahead of their rookie play (year-2 change: **+0.71 SD**, vs. **−0.48 SD** for everyone else).
 
 ![Table 1](figures/table1.png)
 
@@ -110,7 +110,7 @@ Juice+ measures movement, not skill, so ask one way: **do the best players have 
 | Will Anderson | DE | 3 | All-Pro, Pro Bowl | 103 | 96 |
 | Brian Branch | SS | 45 | Pro Bowl | 95 | 107 |
 
-The one exception, Brian Branch, still moved well in games (107 points). Puka Nacua, Jaxon Smith-Njigba and Tuli Tuipulotu have no Combine score.
+Branch, the one exception, moved well in games (107 points). Puka Nacua, Jaxon Smith-Njigba and Tuli Tuipulotu have no Combine score.
 
 ## 7. Aren't we grading our own homework?
 
