@@ -1,3 +1,5 @@
+**Submission write-up: [submission/README.md](submission/README.md).** All the work behind it is in [submission/Juice+_work.ipynb](submission/Juice+_work.ipynb).
+
 # Previous Winners/Qualifiers
 
 Looking back on previous Big Data bowl completitions the one large trend that stands out is the people create their own new metrics within the sport instead of just building a machine learning pipeline. They also used context specific measurements, ex. 100 out of 200 tackles versus 40 out of 50 tackles. They were also incredibly digestible but also differentiated from the crowd. 
