@@ -52,7 +52,7 @@ That is the point of juice: it is how explosive a player is **for his size**. A 
 
 ## 2. Game Juice+: the same pieces, measured on Sundays
 
-Game Juice+ rebuilds the same three pieces from every 2023 to 2025 regular-season snap:
+Game Juice+ is built using the same three pieces tracked in the combine from every 2023 to 2025 regular-season snap:
 
 - **Like is compared with like, and best efforts count.** Each play is compared only with plays at the same position, alignment, route and length, and each piece uses a player's 95th-percentile play. Very short snaps and snaps in decided games are dropped.
 - **Burst starts from his spot, not the snap.** Timing yards 2 to 10 from where he stood keeps reaction time out, just like the 40.
