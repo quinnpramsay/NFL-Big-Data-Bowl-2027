@@ -78,7 +78,7 @@ Game Juice+ is built using the same three components tracked in the combine from
 - **Burst starts from his spot, not the snap.** Timing yards 2 to 10 from where he stood keeps reaction time out, just like the 40.
 - **A player needs 50 usable plays.** 320 players qualify.
 
-Game movement is stable: random halves of a player's plays agree at r = 0.94 (top speed), 0.89 (agility) and 0.81 (burst).
+Game movement is stable for each component: random halves of a player's plays agree at r = 0.94 (top speed), 0.89 (agility) and 0.81 (burst).
 
 **Figure 2:** Malik Heath (WR, undrafted, 2023; Combine Juice+ 98, Game Juice+ 104) ran a **4.64 s** 40, in the bottom 5% of receivers, but his Combine Agility+ was **119**. Over **229 NFL plays** his Game Agility+ was **108**: his sharpest route drill (left), his sharpest NFL cut (right), and both speed traces on one clock (bottom).
 
