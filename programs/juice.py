@@ -1012,8 +1012,9 @@ def c_score(G, how="adjust"):
     how='zscore' only standardizes within position. `confidence` is the average shrink factor.
 
     Each piece is shrunk toward 100 by its own reliability at the player's play count. The final score is the
-    reliability-weighted average of the shrunk pieces on the same 100 scale, with no second rescale, so it always
-    lies inside the range of its own pieces (audit item 4)."""
+    reliability-weighted average of the shrunk pieces, rescaled within position to mean 100 and SD 10, the same
+    final step as Combine Juice+, so Combine and game scores share one scale. Piece scores (g_*_plus) are rescaled
+    the same way."""
     g = G.copy()
     for z, (col, _, _) in COMP_COL.items():
         g[z] = adjust(g, col) if how == "adjust" else g.groupby("pgm")[col].transform(zs)
@@ -1030,10 +1031,10 @@ def c_score(G, how="adjust"):
         conf = conf + k.where(shrunk.notna(), 0) * C_WEIGHTS[z]
     g["raw"] = num / den.replace(0, np.nan)
     g["confidence"] = conf / den.replace(0, np.nan)
-    g["game_juice"] = 100 + 10 * g["raw"]
+    g["game_juice"] = scale100(g, "raw")
     for z, name in [("top_z", "g_top"), ("expl_z", "g_expl"), ("agil_z", "g_agil")]:
         g[name + "_plus_unshrunk"] = 100 + 10 * g[z]
-        g[name + "_plus"] = 100 + 10 * g[z + "_shrunk"] if z + "_shrunk" in g else np.nan
+        g[name + "_plus"] = scale100(g, z + "_shrunk") if z + "_shrunk" in g else np.nan
     return g
 
 

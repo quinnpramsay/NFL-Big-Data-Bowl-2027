@@ -652,8 +652,7 @@ G9 = {}
 S9 = P.dropna(subset=["juice_final"]).copy()
 S9["tier"] = pd.cut(S9.juice_final, [-np.inf, 90, 110, np.inf], labels=["<90", "90-110", "110+"], right=False)
 hasg = S9.game_juice.notna()
-# Game Juice+ is the average of its shrunk pieces with no second rescale, so its spread is narrower than 10 points.
-# "Elite in games" is therefore the top 16% within position (what +1 SD meant before), and above average is the top half.
+# "Elite in games" is the top 16% within position (about +1 SD, 110 points), and above average is the top half.
 S9["g_pct"] = S9.groupby("pgm").game_juice.rank(pct=True)
 out(f"Game Juice+ SD within position (pooled): {S9.groupby('pgm').game_juice.std().mean():.1f} points")
 out("Tiers (Combine Juice+) among players with Game Juice+ (elite = top 16% in games within position):")
