@@ -46,6 +46,8 @@ Agility counts only where a group's drills agree with each other (DL, OL, DB, WR
 
 **Why remove size.** Among defensive linemen, weight and raw top speed have ρ = −0.70. After the size adjustment, ρ = +0.15 (Figure 1). Overall, Juice+ has almost no link to weight (ρ = −0.04).
 
+That is the point of juice: it is how explosive a player is **for his size**. A 265-pound edge rusher will be slower than a 5'8", 165-pound receiver, but how fast he moves relative to his size is what shows how much juice he has. Juice+ is built to push up players who are big and still move really well. T'Vondre Sweat (NT, 366 lb) is slow next to other nose tackles, but fast for a man his size, so his Combine Juice+ is 110 (Game Juice+ 103). A smaller, faster player doesn't automatically have more juice than a bigger, slower one. Teams that want the fastest players regardless of size should use the 40 for that.
+
 ![Figure 1](figures/fig1.png)
 
 ## 2. Game Juice+: the same pieces, measured on Sundays
@@ -58,13 +60,15 @@ Game Juice+ rebuilds the same three pieces from every 2023 to 2025 regular-seaso
 
 Game movement is stable: random halves of a player's plays agree at r = 0.94 (top speed), 0.89 (agility) and 0.81 (burst).
 
-**Figure 2:** Malik Heath (WR, undrafted, 2023) ran a **4.64 s** 40, in the bottom 5% of receivers, but his drill agility was **119 points**. Over **229 NFL plays** his game agility was **106 points**: his sharpest route drill (left), his sharpest NFL cut (right), and both speed traces on one clock (bottom).
+**Figure 2:** Malik Heath (WR, undrafted, 2023; Combine Juice+ 98, Game Juice+ 102) ran a **4.64 s** 40, in the bottom 5% of receivers, but his drill agility was **119 points**. Over **229 NFL plays** his game agility was **106 points**: his sharpest route drill (left), his sharpest NFL cut (right), and both speed traces on one clock (bottom).
 
 ![Figure 2](figures/fig2.gif)
 
 ## 3. Does Combine juice show up in games?
 
 **Yes, on average.** Across the 270 players with both scores, Combine and Game Juice+ have **ρ = 0.30** [0.18, 0.40]. That is modest: Juice+ won't rank players one by one, but it sorts them into groups that move differently on Sundays.
+
+In points, a player's Game Juice+ lands within 10 points (1 SD) of his Combine Juice+ **67%** of the time, with an average gap of **8.1 points**. Pairing each player with a random game score from his own position gives 61% and 9.4 points, so the two scores line up, but loosely.
 
 The link holds when the formula is built without each player's own draft class (ρ = 0.29), for part-timers with 50 to 199 plays (0.20) and for starters with 600+ plays (0.21). It is strongest where games ask players to run in space: DB (0.47), TE (0.44, only 20 players), WR (0.30) and EDGE (0.29). It is weakest on the lines: OL (0.16) and interior DL (0.08). Position groups have 20 to 64 players, so these intervals are wide.
 
@@ -90,7 +94,7 @@ Juice+ measures movement, not skill, so ask one way: **do the best players have 
 | Will Anderson | DE | 3 | All-Pro, Pro Bowl | 101 | 96 |
 | Brian Branch | SS | 45 | Pro Bowl | 98 | 107 |
 
-Branch, the one exception, moved well in games (107 points). Puka Nacua, Jaxon Smith-Njigba and Tuli Tuipulotu have no Combine score.
+Branch, the one exception, scored 98 at the Combine and moved well in games (107). Puka Nacua (Game Juice+ 91), Jaxon Smith-Njigba (103) and Tuli Tuipulotu (94) have no Combine score.
 
 ## 5. Why Juice+ instead of the 40, RAS or the NGS Athleticism Score
 
@@ -98,12 +102,32 @@ The 40, RAS and the NGS Athleticism Score grade a prospect at the Combine and st
 
 | | Juice+ | 40 | RAS-style | NGS Athleticism |
 |---|---|---|---|---|
-| Same score at the Combine and in games | Yes | No | No | No |
-| Removes body size (ρ with weight, 0 = none) | Yes (−0.04) | No (−0.34) | No (−0.29) | No (+0.13) |
+| One scale at the Combine and in games | Yes | No | No | No |
+| What it measures | Speed, burst and agility, from tracking | Sprint time | Sprints, agility drills, jumps and bench press | Drill results, including jumps, plus size |
 
-1. **It can be checked against the player's own games.** Combine and Game Juice+ are the same pieces in the same units, so a team can see whether a prospect's Combine movement showed up on Sundays (Section 3) and keep following him on the same scale every season. A 40 time, a RAS percentile or an NGS model score has no game-day version, so it can never be checked against the player it graded.
+**Top 5 at the Combine by each score**, among the 414 players with a Combine Juice+ (RAS-style needs at least four official tests, so 384 have one). Juice+ is in points (100 = position average), RAS-style runs from 0 to 10 and NGS from 50 to 99. Four players tie for 3rd on NGS, so its list has six. A dash means fewer than 50 usable NFL plays, so no Game Juice+.
+
+| Player | Top 5 by | Combine Juice+ | Game Juice+ | RAS-style | NGS |
+|---|---|---|---|---|---|
+| Brian Thomas (WR, 209 lb) | Juice+ #1 | 134 | 103 | 6.50 | 93 |
+| Adetomiwa Adebawore (DT, 282 lb) | Juice+ #2, RAS #2 | 133 | 104 | 9.35 | 90 |
+| Darien Porter (CB, 195 lb) | Juice+ #3, NGS T-3 | 131 | 107 | 8.60 | 97 |
+| Mason McCormick (G, 309 lb) | Juice+ #4 | 123 | 94 | 8.50 | 86 |
+| Maxwell Hairston (CB, 183 lb) | Juice+ #5 | 123 | 111 | 8.53 | 86 |
+| Deonte Banks (CB, 197 lb) | RAS #1, NGS #2 | 106 | 95 | 9.56 | 98 |
+| Yasir Abdullah (OLB, 237 lb) | RAS #3 | 117 | 103 | 9.34 | 79 |
+| Ruke Orhorhoro (DT, 294 lb) | RAS #4 | 108 | 100 | 9.04 | 89 |
+| Armand Membou (T, 332 lb) | RAS #5 | 115 | 102 | 9.01 | 89 |
+| Tate Ratledge (G, 308 lb) | NGS #1 | 108 | 96 | 8.58 | 99 |
+| Tanor Bortolini (C, 303 lb) | NGS T-3 | 114 | 104 | 8.13 | 97 |
+| Zack Kuntz (TE, 255 lb) | NGS T-3 | 115 | — | 9.01 | 97 |
+| Jared Wilson (G, 310 lb) | NGS T-3 | 117 | 104 | 8.28 | 97 |
+
+Only three players make two lists (Adebawore, Porter and Banks), and none makes all three: the scores measure different things. Because Juice+ has a game version, its list can also be checked on Sundays.
+
+1. **It can be checked against the player's own games.** Combine and Game Juice+ are built the same way from the same tracking data and put on the same scale (100 = position average), so a team can see whether a prospect's Combine movement showed up on Sundays and keep following him every season. The two scores won't match exactly: top speed and burst are measured the same way in both places, but agility comes from drills at the Combine and from sideways acceleration in games. Section 3 shows how closely they line up. A 40 time, a RAS percentile or an NGS model score has no game-day version, so it can never be checked against the player it graded.
 2. **It reads how a player moves, not just when he finishes.** A stopwatch gives one time per drill. Juice+ reads speed and braking all the way through it, which picks up change of direction. For WR and DB, Juice+ agility predicts how hard they cut in games even among players with the same 40 time and RAS-style score (partial ρ = **+0.33** [0.15, 0.49], 125 players). WR and DB whose Combine agility ran ahead of their rookie play improved by **+0.71 SD** in year 2, while everyone else slipped **−0.48 SD**.
-3. **It doesn't reward being light or heavy.** The 40 and RAS-style partly reward light players, and NGS slightly rewards heavy ones. After the size adjustment, Juice+ compares a heavy defensive lineman and a light one on equal terms (Figure 1).
+3. **It measures only juice.** Juice+ is speed, burst and agility: how a player moves. RAS-style also counts the vertical, broad jump and bench press, and NGS also counts jumps and size, so a high score there can come from leaping, strength or size instead of movement.
 
 ## 6. Limits
 
