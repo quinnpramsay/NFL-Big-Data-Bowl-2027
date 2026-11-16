@@ -34,9 +34,9 @@ The sample is 270 rookies from the 2023 to 2025 draft classes with both a Combin
 
 Juice+ borrows from baseball's "plus" stats, like OPS+: compare a player with peers at his position, remove context that isn't ability (**body size and draft class**), and report one number where 100 is average.
 
-It has three pieces. **Combine Juice+** and **Game Juice+** build them the same way, from the same tracking chips, in the same units, so a player's Combine score and his game score compare like with like.
+It has three components. **Combine Juice+** and **Game Juice+** build them the same way, from the same tracking chips, in the same units, so a player's Combine score and his game score compare like with like.
 
-| Piece | Combine Juice+ | Game Juice+ |
+| Component | Combine Juice+ | Game Juice+ |
 |---|---|---|
 | **Top speed** | Fastest 10-yard stretch of the 40 (mph) | Peak speed on his best plays (mph) |
 | **Burst** | Time (s) and average acceleration (yd/s²) from yard 2 to yard 10 of the 40 | The same yard 2 to 10 split (s) and acceleration (yd/s²), timed from where he stood at the snap |
@@ -44,7 +44,7 @@ It has three pieces. **Combine Juice+** and **Game Juice+** build them the same 
 
 Agility counts only where a group's drills agree with each other (DL, OL, DB, WR). EDGE and TE Juice+ is top speed and burst only.
 
-**How the number is built.** Each piece starts from a tracked measure $x$ (say, top speed in mph) and goes through three steps, always within the player's position group $p$:
+**How the number is built.** Each component starts from a tracked measure $x$ (say, top speed in mph) and goes through three steps, always within the player's position group $p$:
 
 1. **Remove size and draft class.** Predict $x$ from weight, weight², height and draft class, using every *other* player at his position, and standardize what is left over:
 
@@ -53,16 +53,16 @@ Agility counts only where a group's drills agree with each other (DL, OL, DB, WR
    where $\hat{x}_i$ is his predicted value and $\bar{e}_p$, $s_p$ are the mean and SD of the leftovers at his position. Burst averages two of these (the split, flipped so faster is higher, and acceleration). Agility averages pace and braking across his drills.
 2. **Pull thin samples toward average.** With $k_i$ reps (40 attempts, drills or game plays) and $r$, how well one rep agrees with another:
 
-   $$P_i = z_i \cdot \frac{k_i\,r}{1 + (k_i - 1)\,r}$$
+   $$C_i = z_i \cdot \frac{k_i\,r}{1 + (k_i - 1)\,r}$$
 
    A player with many reps keeps nearly all of $z_i$. One with few is pulled toward 0, the position average.
-3. **Combine the pieces on the 100 scale.**
+3. **Combine the components on the 100 scale.**
 
-   $$\text{Juice+}_i = 100 + 10 \cdot \frac{\bar{P}_i - m_p}{\sigma_p}, \qquad \bar{P}_i = w_s P^{\text{speed}}_i + w_b P^{\text{burst}}_i + w_a P^{\text{agility}}_i$$
+   $$\text{Juice+}_i = 100 + 10 \cdot \frac{\bar{C}_i - m_p}{\sigma_p}, \qquad \bar{C}_i = w_s C^{\text{speed}}_i + w_b C^{\text{burst}}_i + w_a C^{\text{agility}}_i$$
 
-   where $m_p$ and $\sigma_p$ are the mean and SD of $\bar{P}$ at his position, so both scores average 100 with an SD of 10. The weights are equal at the Combine. In games they follow how repeatable each piece is (0.36, 0.31, 0.34). Without agility (EDGE, TE), the other two weights are rescaled to sum to 1.
+   where $m_p$ and $\sigma_p$ are the mean and SD of $\bar{C}$ at his position, so both scores average 100 with an SD of 10. The weights are equal at the Combine. In games they follow how repeatable each component is (0.36, 0.31, 0.34). Without agility (EDGE, TE), the other two weights are rescaled to sum to 1.
 
-**Narrower scores in the same style.** Juice+ is meant as one all-around measure of how a player moves, but any single piece can be scored the same way. **Agility+** is the agility piece on its own after steps 1 and 2, put on the same 100 scale: 100 is average for his position and size, and higher means more agile. Speed+ and Burst+ work the same way, so a team can see how a player's juice is built, not just how much he has.
+**Narrower scores in the same style.** Juice+ is meant as one all-around measure of how a player moves, but any single component can be scored the same way. **Agility+** is the agility component on its own after steps 1 and 2, put on the same 100 scale: 100 is average for his position and size, and higher means more agile. Speed+ and Burst+ work the same way, so a team can see how a player's juice is built, not just how much he has.
 
 **Why remove size.** Among defensive linemen, weight and raw top speed have ρ = −0.70. After the size adjustment, ρ = +0.15 (Figure 1). Overall, Juice+ has almost no link to weight (ρ = −0.04).
 
@@ -70,11 +70,11 @@ That is the point of juice: it is how explosive a player is **for his size**. A 
 
 ![Figure 1](figures/fig1.png)
 
-## 2. Game Juice+: the same pieces, measured on Sundays
+## 2. Game Juice+: the same components, measured on Sundays
 
-Game Juice+ is built using the same three pieces tracked in the combine from every 2023 to 2025 regular-season snap:
+Game Juice+ is built using the same three components tracked in the combine from every 2023 to 2025 regular-season snap:
 
-- **Like is compared with like, and best efforts count.** Each play is compared only with plays at the same position, alignment, route and length, and each piece uses a player's 95th-percentile play. Very short snaps and snaps in decided games are dropped.
+- **Like is compared with like, and best efforts count.** Each play is compared only with plays at the same position, alignment, route and length, and each component uses a player's 95th-percentile play. Very short snaps and snaps in decided games are dropped.
 - **Burst starts from his spot, not the snap.** Timing yards 2 to 10 from where he stood keeps reaction time out, just like the 40.
 - **A player needs 50 usable plays.** 320 players qualify.
 
