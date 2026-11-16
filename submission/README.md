@@ -32,7 +32,7 @@ The sample is 270 rookies from the 2023 to 2025 draft classes with both a Combin
 
 ## 1. What Juice+ measures
 
-Juice+ borrows from baseball's OPS+: compare a player with peers at his position, remove context that isn't ability (**body size and draft class**), and report one number where 100 is average.
+Juice+ borrows from baseball's "plus" stats, like OPS+: compare a player with peers at his position, remove context that isn't ability (**body size and draft class**), and report one number where 100 is average.
 
 It has three pieces. **Combine Juice+** and **Game Juice+** build them the same way, from the same tracking chips, in the same units, so a player's Combine score and his game score compare like with like.
 
