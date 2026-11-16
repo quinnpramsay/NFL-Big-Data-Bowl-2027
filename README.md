@@ -21,6 +21,5 @@ Needs Python 3 with numpy, pandas, scipy, scikit-learn, statsmodels, matplotlib 
 |---|---|
 | `submission/` | The write-up, the work notebook and the figures |
 | `programs/` | The Juice+ pipeline as plain scripts (the same code the work notebook carries in Appendix B) |
-| `forward_test/` | Our 2026 receiver predictions, saved before the 2026 season with a checksum. Score them after the season with `python3 programs/juice_forward.py --score` |
 
 Earlier versions, test runs and research notes are on the `Testing` branch.

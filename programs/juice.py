@@ -26,7 +26,7 @@ Changes from the November 3 audit (juice_plus_improvement_plan.md):
 
 Run in Colab or locally. Needs the competition files (Kaggle login) or JUICE_DATA_DIR pointing at them.
 Run order: juice.py -> juice_physics.py -> juice_transfer.py -> juice_predictive.py -> juice_casework.py
--> juice_routes.py -> juice_figures.py. Once, after the frozen run: juice_forward.py --freeze (2026 forward test).
+-> juice_routes.py -> juice_figures.py.
 """
 
 # ## 0. Setup and settings
@@ -70,7 +70,7 @@ MIN_FRAMES = int(round(MIN_PLAY_SECONDS * 10))   # plays shorter than this are d
 MIN_FRAMES_OPEN = 20                             # plays used for top speed and agility
 # Which Combine score is the main one. "tracked_only" uses the tracked movement data alone.
 # "blend_50_50" averages each tracked piece with the official tests of the same trait.
-JUICE_VERSION = os.getenv("JUICE_VERSION", "blend_50_50")
+JUICE_VERSION = os.getenv("JUICE_VERSION", "tracked_only")
 BLEND_STOPWATCH = JUICE_VERSION == "blend_50_50"
 DROP_BLOWOUTS, GARBAGE_WP = True, 0.05           # drop snaps when home win probability is under 5% or over 95%
 GATE_ALPHA, MIN_PLAYERS_DRILL, MIN_OVERLAP = 0.5, 20, 15
@@ -371,7 +371,7 @@ def show(df, digits=2):
 # - **A (agility):** position drills, used only for groups whose drills agree with each other.
 #
 # Each piece is adjusted for body size and draft class, then shrunk by how repeatable it is.
-# Section 3 ends by averaging each piece with the stopwatch tests of the same trait.
+# The main score is tracked-only. A 50/50 blend with the stopwatch tests of the same trait is kept for comparison.
 
 def asp_fit(speed, acc, min_speed=2.0):
     """Acceleration-speed line on the rising part of one run: acc = a0 - (a0 / v0) * speed.
@@ -624,10 +624,10 @@ def build_scores(Cin, size_adj=True, shrink=True, blend=True):
     c["juice"] = c["raw_plus"]
     return c
 
-# Build the scores. S is the main score; TRK is tracked-only, kept to show what the blend adds.
+# Build the scores. S is the main score (tracked-only by default); juice_5050 is the stopwatch blend, kept for comparison.
 S = build_scores(C, blend=BLEND_STOPWATCH)
 S["juice_unadjusted"] = build_scores(C, size_adj=False, blend=BLEND_STOPWATCH)["juice"].values
-# Tracked-only version, saved so outcome.py can show what the blend adds.
+# Tracked-only pieces, saved for the agility and burst checks downstream.
 TRK = build_scores(C, blend=False)
 S["juice_tracked_only"] = TRK["juice"].values
 S["juice_5050"] = build_scores(C, blend=True)["juice"].values
