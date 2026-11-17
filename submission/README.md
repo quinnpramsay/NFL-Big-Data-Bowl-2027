@@ -66,7 +66,7 @@ Agility counts only where a group's drills agree with each other (DL, OL, DB, WR
 
 **Why remove size.** Among defensive linemen, weight and raw top speed have ρ = −0.70. After the size adjustment, ρ = +0.15 (Figure 1). Overall, Juice+ has almost no link to weight (ρ = −0.04).
 
-Juice+ puts a player's explosiveness in the context of his size and position. In nearly every case, a 165-pound receiver will be faster, quicker and more agile than a 265-pound edge rusher, but that says more about size than about athleticism. Juice+ measures how well an athlete moves compared with players of similar size at his position. For example, T'Vondre Sweat, a 366-pound nose tackle, ran a 5.27 s 40, the slowest of any 2024 defensive lineman in the data. For his size, though, he has a 110 Combine Juice+ and a 106 Game Juice+. Teams that want raw speed regardless of size should use the 40.
+Juice+ puts a player's explosiveness in the context of his size and position. In nearly every case, a 165-pound receiver will be faster, quicker and more agile than a 265-pound edge rusher, but that says more about size than athleticism. Juice+ measures how well an athlete moves compared with players of similar size at his position. For example, T'Vondre Sweat, a 366-pound nose tackle, ran a 5.27 s 40, the slowest of any 2024 defensive lineman in the data. For his size, though, he has a 110 Combine Juice+ and a 106 Game Juice+. Teams that want raw speed regardless of size should use the 40.
 
 ![Figure 1](figures/fig1.png)
 
