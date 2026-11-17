@@ -2,7 +2,7 @@
 
 Scouts say a player has **juice** when he has an extra gear others don't. The Combine is mocked as the "Underwear Olympics," with its critics saying it can't tell you who can *play*. For this reason, we strictly ask:
 
-> **Can the Combine tell us who will have "juice" in an NFL game before they step foot on the field?**
+> **Can "juice" on the field at the Combine and in an NFL game be measured by one metric?**
 
 **Juice+** answers with one score, measured with the same tracking chips, in the same units, at the Combine and in games.
 
