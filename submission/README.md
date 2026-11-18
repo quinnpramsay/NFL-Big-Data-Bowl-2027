@@ -1,6 +1,6 @@
-# Juice+: Measuring Juice from the Combine to NFL Games.
+# Juice+: The Stat That Measures Juice from the Combine to NFL Games
 
-Scouts say a player has **juice** when he has an extra gear others don't. The Combine is mocked as the "Underwear Olympics," with its critics saying it can't tell you who can *play*. For this reason, we strictly ask:
+Scouts describe a player as having ***"juice"*** when he possesses an extra gear that separates him from his peers. The Combine is mocked as the "Underwear Olympics," with its critics saying it can't tell you who can *play*. For this reason, we strictly ask:
 
 > **Can "juice" on the field at the Combine and in an NFL game be measured by one metric?**
 
